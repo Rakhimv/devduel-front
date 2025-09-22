@@ -1,0 +1,90 @@
+* {
+    box-sizing: border-box;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: #ffffff;
+    transition: background-color 5000s ease-in-out 0s;
+    box-shadow: inset 0 0 20px 20px #23232329;
+}
+
+$primary: #83D6C5;
+
+body {
+    background: #0A0A0A;
+}
+
+.dd-inp {
+    outline: none;
+    border: 1px solid #1C1C1C;
+    border-radius: 0px;
+    font-family: "JetBrains Mono", monospace;
+
+    &::placeholder {
+        color: #585A5D;
+    }
+
+    &:focus {
+         border: 1px solid $primary;
+    }
+}
+
+.dd-inp-err {
+    border: 1px solid red
+}
+
+.dd-btn {
+    border: 1px solid $primary;
+    background: $primary;
+    outline: none;
+    cursor: pointer;
+    color: black;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-family: "JetBrains Mono", monospace;
+
+
+    &:disabled,
+    &.dd-btn-disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        background: darken($primary, 15%);
+    }
+}
+
+.font-dd {
+    font-family: "JetBrains Mono", monospace;
+}
+
+@keyframes hacker {
+    0% {
+        content: "101010";
+    }
+
+    25% {
+        content: "110011";
+    }
+
+    50% {
+        content: "001100";
+    }
+
+    75% {
+        content: "010101";
+    }
+
+    100% {
+        content: "101010";
+    }
+}
+
+.hacker-loading::after {
+    content: "101010";
+    color: #00ff00;
+    font-family: monospace;
+    animation: hacker 0.2s infinite;
+}
