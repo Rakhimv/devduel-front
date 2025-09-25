@@ -1,46 +1,85 @@
 import { useState } from 'react';
-import { login } from '../api/auth';
+import { login } from '../api/api';
 import { useAuth } from '../hooks/useAuth';
+import { useForm } from 'react-hook-form';
+import Spinner from './effects/Spinner';
+import { useNavigate } from 'react-router-dom';
+
+
+
+
+
+type FormData = {
+    loginOrEmail: string;
+    password: string;
+};
+
 
 const LoginForm = () => {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
+    const {
+        register: formLogin,
+        handleSubmit,
+        formState: { errors },
+    } = useForm<FormData>()
+
+    const navigate = useNavigate()
+
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState<boolean>(false)
     const { setAuth } = useAuth();
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const onSubmit = async (data: FormData) => {
+        setError("");
+        setLoading(true);
         try {
-            const { token, user }: any = await login({ email, password });
+            await new Promise((res) => setTimeout(res, 500))
+            const { token, user }: any = await login({
+                loginOrEmail: data.loginOrEmail,
+                password: data.password
+            });
             setAuth(token, user);
-        } catch (err) {
-            setError('Invalid credentials');
+            console.log(user);
+            navigate("/")
+        } catch (err: any) {
+            setError(err.response?.data?.message || err.message);
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
-        <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
-            <h2 className="text-2xl font-bold mb-4">Login</h2>
-            {error && <p className="text-red-500 mb-4">{error}</p>}
-            <div onSubmit={handleSubmit} className="space-y-4">
+        <div className="w-full max-w-[400px] flex flex-col  items-center justify-center gap-4 text-white">
+            <h2 className="font-dd text-4xl uppercase">Вход</h2>
+            {error && <p className="font-dd text-redDD mb-4">{error}</p>}
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Email"
-                    className="w-full p-2 border rounded"
+                    type="text"
+                    className={`dd-inp p-2 w-full ${errors.loginOrEmail ? "dd-inp-err" : ""
+                        }`}
+                    {...formLogin("loginOrEmail", { required: "Введите логин email" })}
+                    placeholder="Логин или Email"
                 />
                 <input
                     type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    {...formLogin("password", { required: "Введите пароль" })}
                     placeholder="Password"
-                    className="w-full p-2 border rounded"
+                    className={`dd-inp p-2 w-full ${errors.password ? "dd-inp-err" : ""
+                        }`}
                 />
-                <button type="submit" className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">
-                    Login
+                <button
+                    disabled={loading}
+                    type="submit"
+                    className="dd-btn p-2 w-full">
+                    {loading ? (
+                        <>
+                            <Spinner /> ЗАГРУЗКА...
+                        </>
+                    ) : (
+                        "Войти"
+                    )}
+
                 </button>
-            </div>
+            </form>
         </div>
     );
 };

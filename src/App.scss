@@ -1,6 +1,10 @@
 * {
     box-sizing: border-box;
+    font-family: "JetBrains Mono", monospace;
 }
+
+
+
 
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
@@ -13,6 +17,10 @@ input:-webkit-autofill:active {
 }
 
 $primary: #83D6C5;
+$blueDD: #94C1FA;
+$orangeDD: #EBC88D;
+$pinkDD: #DA70D6;
+$redDD: #f46161;
 
 body {
     background: #0A0A0A;
@@ -29,12 +37,12 @@ body {
     }
 
     &:focus {
-         border: 1px solid $primary;
+        border: 1px solid $primary;
     }
 }
 
 .dd-inp-err {
-    border: 1px solid red
+    border: 1px solid $redDD
 }
 
 .dd-btn {

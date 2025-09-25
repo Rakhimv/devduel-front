@@ -1,2 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
 @import "tailwindcss";
+
+@theme {
+  --color-primary: #83D6C5;
+  --color-blueDD: #94C1FA;
+  --color-orangeDD: #EBC88D;
+  --color-pinkDD: #DA70D6;
+  --color-redDD: #f46161;
+}
