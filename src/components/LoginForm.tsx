@@ -33,11 +33,11 @@ const LoginForm = () => {
         setLoading(true);
         try {
             await new Promise((res) => setTimeout(res, 500))
-            const { token, user }: any = await login({
+            const { user }: any = await login({
                 loginOrEmail: data.loginOrEmail,
                 password: data.password
             });
-            setAuth(token, user);
+            setAuth(user);
             console.log(user);
             navigate("/")
         } catch (err: any) {

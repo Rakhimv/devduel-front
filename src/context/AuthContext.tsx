@@ -1,13 +1,12 @@
 import { createContext, useEffect, useState, type ReactNode } from "react";
 import type { User } from "../types/auth";
-import { getUser } from "../api/api";
+import { getUser, logout as apiLogout } from "../api/api";
 
 interface AuthContextType {
     user: User | null;
-    token: string | null;
     isAuth: boolean;
     isLoading: boolean;
-    setAuth: (token: string, user: User) => void;
+    setAuth: (user: User) => void;
     logout: () => void;
 }
 
@@ -15,7 +14,6 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<User | null>(null)
-    const [token, setToken] = useState<string | null>(localStorage.getItem("token"))
     const [isAuth, setIsAuth] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -23,40 +21,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => {
         const fetchUser = async () => {
             setIsLoading(true)
-            if (token) {
-                try {
-                    const fetchedUser = await getUser();
-                    setUser(fetchedUser);
-                    setIsAuth(true);
-                } catch (err) {
-                    console.error("Не удалось получить пользователя: ", err);
-                    logout();
-                }
-            } else {
-                setIsAuth(false);
+            try {
+                const fetchedUser = await getUser();
+                setUser(fetchedUser);
+                setIsAuth(true);
+            } catch (err) {
+                console.error("Не удалось получить пользователя: ", err);
                 setUser(null);
+                setIsAuth(false);
+            } finally {
+                setIsLoading(false)
             }
-            setIsLoading(false)
         };
         fetchUser();
-    }, [token]);
+    }, []);
 
 
-    const setAuth = (newToken: string, newUser: User) => {
-        localStorage.setItem("token", newToken)
-        setToken(newToken)
+    const setAuth = (newUser: User) => {
         setUser(newUser)
+        setIsAuth(true)
     }
 
 
-    const logout = () => {
-        localStorage.removeItem("token")
-        setToken(null)
+    const logout = async () => {
+        try {
+            await apiLogout();
+        } catch (error) {
+            console.error('Ошибка при выходе:', error);
+        }
         setUser(null)
+        setIsAuth(false)
+    
+        window.history.pushState(null, '', '/login');
+        window.dispatchEvent(new PopStateEvent('popstate'));
     }
 
 
-    return <AuthContext.Provider value={{ user, token, isAuth, isLoading, setAuth, logout }}>
+    return <AuthContext.Provider value={{ user, isAuth, isLoading, setAuth, logout }}>
         {children}
     </AuthContext.Provider>
 

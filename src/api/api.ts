@@ -8,38 +8,40 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true,
 });
-
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-
 
 api.interceptors.response.use(
   (response) => response,
-  (error: AxiosError) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem("token");
-      // Не делаем перезагрузку, пусть AuthContext сам обработает
+  async (error: AxiosError) => {
+    const originalRequest = error.config as any;
+    
+    if (error.response?.status === 401 && 
+        !originalRequest._retry && 
+        !originalRequest.url?.includes('/auth/refresh') &&
+        !originalRequest.url?.includes('/auth/logout') &&
+        !originalRequest.url?.includes('/auth/login') &&
+        !originalRequest.url?.includes('/auth/register')) {
+      originalRequest._retry = true;
+      
+      try {
+        await api.post('/auth/refresh');
+        return api(originalRequest);
+      } catch (refreshError) {
+        window.history.pushState(null, '', '/login');
+        window.dispatchEvent(new PopStateEvent('popstate'));
+        return Promise.reject(refreshError);
+      }
     }
+    
     return Promise.reject(error);
   }
 );
 
-
-
-export const register = async (data: RegisterCredentials) => {
+export const register = async (data: RegisterCredentials): Promise<{ user: User }> => {
   try {
     const response = await api.post("/auth/register", data);
-    return response.data;
+    return response.data; 
   } catch (error) {
     throw new Error(
       error instanceof AxiosError && error.response?.data?.message
@@ -49,14 +51,10 @@ export const register = async (data: RegisterCredentials) => {
   }
 };
 
-export const login = async (data: LoginCredentials): Promise<{ user: User; token: string }> => {
+export const login = async (data: LoginCredentials): Promise<{ user: User }> => {
   try {
-
     const response = await api.post("/auth/login", data);
-    const { user, token } = response.data;
-    
-    localStorage.setItem("token", token);
-    return { user, token };
+    return response.data; 
   } catch (error) {
     throw new Error(
       error instanceof AxiosError && error.response?.data?.message
@@ -79,7 +77,10 @@ export const getUser = async (): Promise<User> => {
   }
 };
 
-export const logout = (): void => {
-  localStorage.removeItem("token");
-  window.location.href = "/login";
+export const logout = async (): Promise<void> => {
+  try {
+    await api.post("/auth/logout");
+  } catch (error) {
+    console.error("Ошибка при выходе");
+  }
 };

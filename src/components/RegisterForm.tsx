@@ -32,11 +32,11 @@ const RegisterForm = () => {
         try {
             await new Promise((res) => setTimeout(res, 500));
             await register(data);
-            const { token, user }: any = await login({
+            const { user }: any = await login({
                 loginOrEmail: data.login,
                 password: data.password,
             });
-            setAuth(token, user);
+            setAuth(user);
             navigate("/")
         } catch (err: any) {
             setErrorText(err.response?.data?.message || err.message);
