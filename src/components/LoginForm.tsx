@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useForm } from 'react-hook-form';
 import Spinner from './effects/Spinner';
 import { useNavigate } from 'react-router-dom';
+import { LogoSvg } from './ui/UiElements';
 
 
 
@@ -49,7 +50,10 @@ const LoginForm = () => {
 
     return (
         <div className="w-full max-w-[400px] flex flex-col  items-center justify-center gap-4 text-white">
-            <h2 className="font-dd text-4xl uppercase">Вход</h2>
+            <div className='flex items-center justify-center flex-col gap-[10px]'>
+                <LogoSvg className='w-[60px]' />
+                <h2 className="font-dd text-3xl uppercase">Вход</h2>
+            </div>
             {error && <p className="font-dd text-redDD mb-4">{error}</p>}
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <input
