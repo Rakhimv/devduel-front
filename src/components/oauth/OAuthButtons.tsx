@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom"
-import { getGitHubUrl, getYandexUrl } from "../../utils/getGithubUrl"
-import { FaGithub, FaYandex } from "react-icons/fa";
+import { getGitHubUrl, getGoogleUrl, getYandexUrl } from "../../utils/getOAuthURL"
+import { FaGithub, FaGoogle, FaYandex } from "react-icons/fa";
 
 
 const OAuthButtons = () => {
@@ -14,6 +14,11 @@ const OAuthButtons = () => {
             <Link to={getYandexUrl('/')}>
                 <div className="cursor-pointer p-[10px] w-max border-orangeDD border-1 text-redDD hover:bg-orangeDD hover:text-redDD transition-all">
                     <FaYandex size={30} className="" />
+                </div>
+            </Link>
+            <Link to={getGoogleUrl('/')}>
+                <div className="cursor-pointer p-[10px] w-max border-primary border-1 text-blueDD hover:bg-primary hover:text-black transition-all">
+                    <FaGoogle size={30} className="" />
                 </div>
             </Link>
         </div>

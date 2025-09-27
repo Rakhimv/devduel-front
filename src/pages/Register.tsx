@@ -8,12 +8,12 @@ const Register = () => {
             <div className='flex flex-col gap-[20px] items-center justify-center w-full max-w-[350px]'>
                 <RegisterForm />
 
-                <OAuthButtons />
+
 
                 <div className='text-white w-full flex items-center justify-center gap-[10px]'>
                     <p>Уже есть аккаунт?</p>
                     <Link className='text-blueDD' to={"/login"}>Войти</Link></div>
-
+                <OAuthButtons />
             </div>
         </div>
     );
