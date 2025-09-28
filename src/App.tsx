@@ -7,26 +7,29 @@ import PrivateRout from './routes/PrivateRoute';
 import UserExRoute from './routes/UserExRoute';
 import TitleAnimation from './components/ui/TitleAnimation';
 
+
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
+    <BrowserRouter>
+      <Routes>
+        <Route path='/anim' element={<TitleAnimation />} />
 
-          <Route path='/anim' element={<TitleAnimation />} />
+        <Route path="/*" element={
+          <AuthProvider>
+            <Routes>
+              <Route element={<UserExRoute />}>
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+              </Route>
 
-          <Route element={<UserExRoute />}>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-          </Route>
-
-          <Route element={<PrivateRout />}>
-            <Route path="/" element={<Home />} />
-          </Route>
-
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+              <Route element={<PrivateRout />}>
+                <Route path="/" element={<Home />} />
+              </Route>
+            </Routes>
+          </AuthProvider>
+        } />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

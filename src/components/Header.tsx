@@ -5,10 +5,10 @@ const Header = () => {
     const { user, logout } = useAuth();
 
     return (
-        <div className="w-full h-[100px] border-b-1 border-b-greyDD">
+        <div className="w-full max-h-[100px] h-[100px] border-b-1 border-b-greyDD overflow-hidden p-[10px]">
 
-            <div className="flex gap-[20px]">
-                <img className='h-6 w-6' src={user?.avatar || ""} />
+            <div className="flex gap-[20px] items-center h-full">
+                <img className='w-[80px] h-[80px]' src={user?.avatar || "/default.png"} />
                 <p className='text-blueDD font-dd font-bold text-[30px]'>{user?.id}</p>
                 <p className='text-primary font-dd font-bold text-[30px]'>{user?.name}</p>
                 <p
