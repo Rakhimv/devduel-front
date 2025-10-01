@@ -1,15 +1,17 @@
-import Chat from "../components/chat/Chat";
+import { useParams } from "react-router-dom";
+import Messanger from "../components/chat/Messanger";
 import Header from "../components/Header";
-import CodeEditor from "../components/IDE/CodeEditor";
+
+
+
 
 const Dashboard = () => {
-
-
+  const { id } = useParams<{ id: string }>();
+  
   return (
     <div className="min-h-screen w-full">
       <Header />
-      <Chat chatId="general" />
-      <CodeEditor />
+      <Messanger initialChatId={id || null} />
     </div>
   );
 };

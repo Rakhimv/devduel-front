@@ -1,4 +1,3 @@
-// src/components/CodeIDE.tsx
 import { useState } from "react";
 import Editor, { loader } from "@monaco-editor/react";
 import * as monaco from "monaco-editor";

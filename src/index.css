@@ -10,3 +10,9 @@
   --color-redDD: #f46161;
   --color-greyDD: #232323
 }
+
+@layer base {
+  body {
+    @apply bg-black text-white;
+  }
+}

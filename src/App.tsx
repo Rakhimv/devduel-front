@@ -1,11 +1,11 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import Login from './pages/Login';
-import Home from './pages/Dashboard';
 import Register from './pages/Register';
 import PrivateRout from './routes/PrivateRoute';
 import UserExRoute from './routes/UserExRoute';
 import TitleAnimation from './components/ui/TitleAnimation';
+import Dashboard from './pages/Dashboard';
 
 
 function App() {
@@ -23,7 +23,8 @@ function App() {
               </Route>
 
               <Route element={<PrivateRout />}>
-                <Route path="/" element={<Home />} />
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/msg/:id" element={<Dashboard />} />
               </Route>
             </Routes>
           </AuthProvider>

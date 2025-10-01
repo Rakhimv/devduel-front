@@ -3,7 +3,7 @@ import type { LoginCredentials, RegisterCredentials, User } from "../types/auth"
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-const api = axios.create({
+export const api = axios.create({
   baseURL: API_URL,
   headers: {
     "Content-Type": "application/json",
