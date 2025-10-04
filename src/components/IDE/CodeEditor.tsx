@@ -9,7 +9,7 @@ export default function CodeIDE() {
   loader.config({ monaco });
   return (
     <div className="w-full mt-[50px] h-[20vh] flex flex-col bg-black text-white">
-      {/* Toolbar */}
+
       <div className="flex items-center gap-4 p-2 ">
         <span className="font-bold">My IDE</span>
         <select

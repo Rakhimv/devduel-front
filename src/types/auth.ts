@@ -7,6 +7,7 @@ export interface User {
     provider: string;
     role: string;
     password: string;
+    online?: boolean
 }
 
 

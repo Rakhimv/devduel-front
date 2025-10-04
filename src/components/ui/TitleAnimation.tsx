@@ -7,7 +7,7 @@ const TitleAnimation = () => {
     const [showText, setShowText] = useState(false)
 
     useEffect(() => {
-        const timer = setTimeout(() => setShowText(true), 1700) // 1.2s анимация + 0.5s delay
+        const timer = setTimeout(() => setShowText(true), 1700)
 
         return () => {
             clearTimeout(timer)

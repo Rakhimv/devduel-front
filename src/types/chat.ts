@@ -9,6 +9,9 @@ export interface ChatInList {
   last_message?: string;
   last_timestamp?: string;
   username?: string;
+  unread_count: number;
+  user_id?: number;
+  target_user_id?: number;
 }
 
 export interface Message {
@@ -18,4 +21,5 @@ export interface Message {
   username: string;
   text: string;
   timestamp: string;
+  is_read: boolean;
 }

@@ -2,8 +2,10 @@ import React, { useEffect, useState, useRef, type FormEvent } from "react";
 import io, { Socket } from "socket.io-client";
 import { api } from "../../api/api";
 import type { Message } from "../../types/chat";
+import { useAuth } from "../../hooks/useAuth";
 
 const Chat: React.FC<{ chatId: string | null }> = ({ chatId }) => {
+    const { user } = useAuth();
     const [socket, setSocket] = useState<Socket | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
     const [text, setText] = useState("");
@@ -29,6 +31,21 @@ const Chat: React.FC<{ chatId: string | null }> = ({ chatId }) => {
             setMessages((prev) => [...prev, msg]);
         });
 
+
+
+        newSocket.on("messages_read_by_other", ({ chatId: readChatId, messageIds }) => {
+            if (readChatId === chatId) {
+                setMessages((prev) =>
+                    prev.map((msg) =>
+                        (messageIds.includes(msg.id) && msg.user_id === user?.id)
+                            ? { ...msg, is_read: true }
+                            : msg
+                    )
+                );
+            }
+        });
+
+
         setSocket(newSocket);
 
         return () => {
@@ -49,7 +66,10 @@ const Chat: React.FC<{ chatId: string | null }> = ({ chatId }) => {
                         .then((msgRes) => {
                             setMessages(msgRes.data.reverse());
                         })
-                        .catch(() => setMessages([]));
+                        .catch((error) => {
+                            console.error('Error fetching messages:', error);
+                            setMessages([]);
+                        });
                 } else {
                     setMessages([]);
                 }
@@ -63,6 +83,39 @@ const Chat: React.FC<{ chatId: string | null }> = ({ chatId }) => {
     useEffect(() => {
         messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
+
+
+
+
+
+
+
+    useEffect(() => {
+        if (!chatId || !user) return;
+        const unreadMessages = messages.filter(msg => !msg.is_read && msg.user_id !== user.id);
+        if (unreadMessages.length > 0) {
+            const timer = setTimeout(() => {
+                const messageIds = unreadMessages.map(msg => msg.id);
+                api.post(`/chats/${chatId}/mark-read`, { chatId, messageIds })
+                    .then(() => {
+                        setMessages((prev) =>
+                            prev.map((msg) =>
+                                messageIds.includes(msg.id) ? { ...msg, is_read: true } : msg
+                            )
+                        );
+                    })
+                    .catch((err) => {
+                        console.error("Error marking messages as read:", err);
+                    });
+            }, 500); 
+
+            return () => clearTimeout(timer);
+        }
+    }, [messages, chatId, user]);
+
+
+
+
 
     const sendMessage = async () => {
         if (!socket || !text.trim() || !chatId) return;
@@ -84,6 +137,8 @@ const Chat: React.FC<{ chatId: string | null }> = ({ chatId }) => {
         socket.emit("send_message", { chatId: finalChatId, text });
         setText("");
     };
+
+    const firstUnreadIndex = messages.findIndex((msg) => !msg.is_read && msg.user_id !== user?.id);
 
     if (!chatId) {
         return (
@@ -107,10 +162,8 @@ const Chat: React.FC<{ chatId: string | null }> = ({ chatId }) => {
     return (
         <div className="w-full h-full bg-[#111A1F] text-white flex flex-col">
             <div className="bg-[#485761] p-4 border-b border-gray-600">
-                <h2 className="text-lg font-semibold">
-                    {chatInfo.display_name}
-                </h2>
-                {chatInfo.chat_type === "group" && !chatInfo.isParticipant && (chatId !== "general") && (
+                <h2 className="text-lg font-semibold">{chatInfo.display_name}</h2>
+                {chatInfo.chat_type === "group" && !chatInfo.isParticipant && chatId !== "general" && (
                     <button className="mt-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-sm">
                         Присоединиться
                     </button>
@@ -118,10 +171,26 @@ const Chat: React.FC<{ chatId: string | null }> = ({ chatId }) => {
             </div>
 
             <div className="messages flex-1 overflow-y-auto text-[20px] p-4">
-                {messages.map((msg) => (
-                    <div key={msg.id} className="mb-2">
-                        [{new Date(msg.timestamp).toLocaleTimeString()}] &lt;{msg.username}&gt; {msg.text}
-                    </div>
+                {messages.map((msg, index) => (
+                    <React.Fragment key={msg.id}>
+                        {firstUnreadIndex === index && (
+                            <div className="my-2 border-t border-red-500 text-red-500 text-center">
+                                Непрочитанные сообщения
+                            </div>
+                        )}
+                        <div className="mb-2 flex items-center gap-2">
+                          
+                            <span>[{new Date(msg.timestamp).toLocaleTimeString()}] &lt;{msg.username}&gt; {msg.text}</span>
+                           
+                           
+                           
+                            {msg.user_id === user?.id && (
+                                <span className={`text-xs ${msg.is_read ? 'text-blue-400' : 'text-gray-400'}`}>
+                                    {chatInfo?.chat_type === 'group' ? (msg.is_read ? '✓✓' : '✓') : (msg.is_read ? '✓✓' : '✓')}
+                                </span>
+                            )}
+                        </div>
+                    </React.Fragment>
                 ))}
                 <div ref={messageEndRef} />
             </div>
