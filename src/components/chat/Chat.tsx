@@ -1,40 +1,37 @@
 import React, { useEffect, useState, useRef, type FormEvent } from "react";
-import io, { Socket } from "socket.io-client";
 import { api } from "../../api/api";
 import type { Message } from "../../types/chat";
 import { useAuth } from "../../hooks/useAuth";
 
 const Chat: React.FC<{ chatId: string | null }> = ({ chatId }) => {
-    const { user } = useAuth();
-    const [socket, setSocket] = useState<Socket | null>(null);
+    const { user, socket } = useAuth();
     const [messages, setMessages] = useState<Message[]>([]);
     const [text, setText] = useState("");
     const [chatInfo, setChatInfo] = useState<any>(null);
+    const [showUnreadDivider, setShowUnreadDivider] = useState(false);
     const messageEndRef = useRef<HTMLDivElement>(null);
+    const currentChatIdRef = useRef<string | null>(null);
 
     useEffect(() => {
         if (!chatId) {
             setMessages([]);
             setChatInfo(null);
+            setShowUnreadDivider(false);
+            currentChatIdRef.current = null;
             return;
         }
 
-        const newSocket = io(import.meta.env.VITE_BACKEND_URL || "http://localhost:6047", {
-            withCredentials: true,
-        });
+        if (!socket) return;
 
-        newSocket.on("connect", () => {
-            newSocket.emit("join_chat", chatId);
-        });
+        currentChatIdRef.current = chatId;
 
-        newSocket.on("new_message", (msg: Message) => {
+        const handleNewMessage = (msg: Message) => {
+            setShowUnreadDivider(false);
             setMessages((prev) => [...prev, msg]);
-        });
+        };
 
-
-
-        newSocket.on("messages_read_by_other", ({ chatId: readChatId, messageIds }) => {
-            if (readChatId === chatId) {
+        const handleMessagesReadByOther = ({ chatId: readChatId, messageIds }: any) => {
+            if (readChatId === currentChatIdRef.current) {
                 setMessages((prev) =>
                     prev.map((msg) =>
                         (messageIds.includes(msg.id) && msg.user_id === user?.id)
@@ -43,15 +40,18 @@ const Chat: React.FC<{ chatId: string | null }> = ({ chatId }) => {
                     )
                 );
             }
-        });
+        };
 
+        socket.on("new_message", handleNewMessage);
+        socket.on("messages_read_by_other", handleMessagesReadByOther);
 
-        setSocket(newSocket);
+        socket.emit("join_chat", chatId);
 
         return () => {
-            newSocket.disconnect();
+            socket.off("new_message", handleNewMessage);
+            socket.off("messages_read_by_other", handleMessagesReadByOther);
         };
-    }, [chatId]);
+    }, [chatId, socket, user]);
 
     useEffect(() => {
         if (!chatId) return;
@@ -64,21 +64,28 @@ const Chat: React.FC<{ chatId: string | null }> = ({ chatId }) => {
                     api
                         .get(`/chats/${chatId}/messages`)
                         .then((msgRes) => {
-                            setMessages(msgRes.data.reverse());
+                            const loadedMessages = msgRes.data.reverse();
+                            setMessages(loadedMessages);
+                            
+                            const hasUnread = loadedMessages.some((msg: Message) => !msg.is_read && msg.user_id !== user?.id);
+                            setShowUnreadDivider(hasUnread);
                         })
                         .catch((error) => {
                             console.error('Error fetching messages:', error);
                             setMessages([]);
+                            setShowUnreadDivider(false);
                         });
                 } else {
                     setMessages([]);
+                    setShowUnreadDivider(false);
                 }
             })
             .catch(() => {
                 setMessages([]);
                 setChatInfo(null);
+                setShowUnreadDivider(false);
             });
-    }, [chatId]);
+    }, [chatId, user]);
 
     useEffect(() => {
         messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -95,14 +102,22 @@ const Chat: React.FC<{ chatId: string | null }> = ({ chatId }) => {
         const unreadMessages = messages.filter(msg => !msg.is_read && msg.user_id !== user.id);
         if (unreadMessages.length > 0) {
             const timer = setTimeout(() => {
-                const messageIds = unreadMessages.map(msg => msg.id);
-                api.post(`/chats/${chatId}/mark-read`, { chatId, messageIds })
+                const lastUnreadMessage = unreadMessages[unreadMessages.length - 1];
+                
+                api.post(`/chats/${chatId}/mark-read`, { 
+                    chatId, 
+                    lastMessageId: lastUnreadMessage.id 
+                })
                     .then(() => {
                         setMessages((prev) =>
                             prev.map((msg) =>
-                                messageIds.includes(msg.id) ? { ...msg, is_read: true } : msg
+                                (!msg.is_read && msg.user_id !== user.id && msg.id <= lastUnreadMessage.id) 
+                                    ? { ...msg, is_read: true } 
+                                    : msg
                             )
                         );
+                   
+                        setShowUnreadDivider(false);
                     })
                     .catch((err) => {
                         console.error("Error marking messages as read:", err);
@@ -173,7 +188,7 @@ const Chat: React.FC<{ chatId: string | null }> = ({ chatId }) => {
             <div className="messages flex-1 overflow-y-auto text-[20px] p-4">
                 {messages.map((msg, index) => (
                     <React.Fragment key={msg.id}>
-                        {firstUnreadIndex === index && (
+                        {showUnreadDivider && firstUnreadIndex === index && (
                             <div className="my-2 border-t border-red-500 text-red-500 text-center">
                                 Непрочитанные сообщения
                             </div>

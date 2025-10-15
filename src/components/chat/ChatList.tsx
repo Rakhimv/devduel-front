@@ -2,7 +2,7 @@ import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import type { ChatInList } from "../../types/chat";
 import { api } from "../../api/api";
-import io from "socket.io-client";
+import { useAuth } from "../../hooks/useAuth";
 
 type ChatListProps = {
   setChatId: Dispatch<SetStateAction<string | null>>;
@@ -15,17 +15,12 @@ const ChatList: React.FC<ChatListProps> = ({ setChatId }) => {
   const [onlineUsers, setOnlineUsers] = useState<Set<number>>(new Set());
   const navigate = useNavigate();
   const location = useLocation();
+  const { socket } = useAuth();
 
   useEffect(() => {
-    const socket = io(import.meta.env.VITE_BACKEND_URL || "http://localhost:6047", {
-      withCredentials: true,
-    });
+    if (!socket) return;
 
-    socket.on("connect", () => {
-      socket.emit("join_chat", "general"); 
-    });
-
-    socket.on("chat_update", ({ chatId, last_message, last_timestamp, unread_count }) => {
+    const handleChatUpdate = ({ chatId, last_message, last_timestamp, unread_count }: any) => {
       setChats((prev) =>
         prev.map((chat) =>
           chat.id === chatId
@@ -33,9 +28,9 @@ const ChatList: React.FC<ChatListProps> = ({ setChatId }) => {
             : chat
         )
       );
-    });
+    };
 
-    socket.on("user_status", ({ userId, isOnline }) => {
+    const handleUserStatus = ({ userId, isOnline }: any) => {
       setOnlineUsers((prev) => {
         const newSet = new Set(prev);
         if (isOnline) {
@@ -45,12 +40,16 @@ const ChatList: React.FC<ChatListProps> = ({ setChatId }) => {
         }
         return newSet;
       });
-    });
+    };
+
+    socket.on("chat_update", handleChatUpdate);
+    socket.on("user_status", handleUserStatus);
 
     return () => {
-      socket.disconnect();
+      socket.off("chat_update", handleChatUpdate);
+      socket.off("user_status", handleUserStatus);
     };
-  }, []);
+  }, [socket]);
 
   const fetchChats = async () => {
     try {
