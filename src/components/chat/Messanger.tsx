@@ -26,7 +26,7 @@ const Messanger = ({ initialChatId }: MessangerProps) => {
     return (
         <div className="w-full flex h-[calc(100vh-100px)]">
             <ChatList setChatId={setChatId} />
-            <Chat chatId={chatId} />
+            <Chat chatId={chatId} setChatId={setChatId} />
         </div>
     )
 }

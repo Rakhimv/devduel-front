@@ -24,6 +24,7 @@ function App() {
 
               <Route element={<PrivateRout />}>
                 <Route path="/" element={<Dashboard />} />
+                <Route path="/msg/" element={<Dashboard />} />
                 <Route path="/msg/:id" element={<Dashboard />} />
               </Route>
             </Routes>
