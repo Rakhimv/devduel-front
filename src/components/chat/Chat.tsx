@@ -4,6 +4,7 @@ import { api } from "../../api/api";
 import type { Message } from "../../types/chat";
 import { useAuth } from "../../hooks/useAuth";
 import { formatLastSeen } from "../../utils/lastSeen";
+import GameInviteComponent from "../game/GameInvite";
 
 const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => void }> = ({ chatId, setChatId }) => {
     const { user, socket } = useAuth();
@@ -77,10 +78,15 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
             }
         };
 
+        const handleGameInviteAccepted = (session: any) => {
+            navigate(`/game/${session.id}`);
+        };
+
         socket.on("new_message", handleNewMessage);
         socket.on("messages_read_by_other", handleMessagesReadByOther);
         socket.on("chat_history_cleared", handleChatHistoryCleared);
         socket.on("user_status", handleUserStatus);
+        socket.on("game_invite_accepted", handleGameInviteAccepted);
 
         socket.emit("join_chat", chatId);
 
@@ -89,6 +95,7 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
             socket.off("messages_read_by_other", handleMessagesReadByOther);
             socket.off("chat_history_cleared", handleChatHistoryCleared);
             socket.off("user_status", handleUserStatus);
+            socket.off("game_invite_accepted", handleGameInviteAccepted);
         };
     }, [chatId, socket, user, chatInfo]);
 
@@ -102,7 +109,7 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                 if (res.data.chat_type === "direct" && res.data.user) {
                     setIsUserOnline(res.data.user.is_online || false);
                 }
-                
+
                 if (res.data.chatExists) {
                     api
                         .get(`/chats/${chatId}/messages`)
@@ -188,6 +195,22 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
 
 
 
+    const sendGameInvite = async () => {
+        if (!socket || !chatId || !chatInfo) return;
+
+        const targetUserId = chatInfo.targetUser?.id || chatInfo.user?.id;
+        if (!targetUserId) return;
+
+        try {
+            socket.emit("send_game_invite", {
+                chatId,
+                toUserId: targetUserId
+            });
+        } catch (err) {
+            console.error("Error sending game invite:", err);
+        }
+    };
+
 
 
     const sendMessage = async () => {
@@ -235,6 +258,7 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
         );
     }
 
+
     return (
         <div className="w-full h-full bg-[#111A1F] text-white flex flex-col">
             <div className="bg-[#485761] p-4 border-b border-gray-600">
@@ -255,6 +279,7 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
             </div>
 
             <div className="messages flex-1 overflow-y-auto text-[20px] p-4">
+
                 {messages.map((msg, index) => (
                     <React.Fragment key={msg.id}>
                         {showUnreadDivider && firstUnreadIndex === index && (
@@ -262,18 +287,46 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                                 Непрочитанные сообщения
                             </div>
                         )}
-                        <div className="mb-2 flex items-center gap-2">
-
-                            <span>[{new Date(msg.timestamp).toLocaleTimeString()}] &lt;{msg.username}&gt; {msg.text}</span>
-
-
-
-                            {msg.user_id === user?.id && (
-                                <span className={`text-xs ${msg.is_read ? 'text-blue-400' : 'text-gray-400'}`}>
-                                    {chatInfo?.chat_type === 'group' ? (msg.is_read ? '✓✓' : '✓') : (msg.is_read ? '✓✓' : '✓')}
-                                </span>
-                            )}
-                        </div>
+                        
+                        {msg.message_type === 'game_invite' && msg.game_invite_data ? (
+                            <div className="mb-4">
+                                <GameInviteComponent
+                                    invite={{
+                                        id: msg.game_invite_data.invite_id,
+                                        fromUserId: msg.game_invite_data.from_user_id,
+                                        fromUsername: msg.game_invite_data.from_username,
+                                        toUserId: msg.game_invite_data.to_user_id,
+                                        toUsername: msg.game_invite_data.to_username,
+                                        timestamp: msg.timestamp,
+                                        status: msg.game_invite_data.status
+                                    }}
+                                    onAccept={() => {
+                                        if (socket && msg.game_invite_data) {
+                                            socket.emit("accept_game_invite", {
+                                                inviteId: msg.game_invite_data.invite_id
+                                            });
+                                        }
+                                    }}
+                                    onDecline={() => {
+                                        if (socket && msg.game_invite_data) {
+                                            socket.emit("decline_game_invite", {
+                                                inviteId: msg.game_invite_data.invite_id
+                                            });
+                                        }
+                                    }}
+                                    isFromCurrentUser={msg.user_id === user?.id}
+                                />
+                            </div>
+                        ) : (
+                            <div className="mb-2 flex items-center gap-2">
+                                <span>[{new Date(msg.timestamp).toLocaleTimeString()}] &lt;{msg.username}&gt; {msg.text}</span>
+                                {msg.user_id === user?.id && (
+                                    <span className={`text-xs ${msg.is_read ? 'text-blue-400' : 'text-gray-400'}`}>
+                                        {chatInfo?.chat_type === 'group' ? (msg.is_read ? '✓✓' : '✓') : (msg.is_read ? '✓✓' : '✓')}
+                                    </span>
+                                )}
+                            </div>
+                        )}
                     </React.Fragment>
                 ))}
                 <div ref={messageEndRef} />
@@ -287,19 +340,24 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                     }}
                     className="w-full py-[5px] bg-[#485761]"
                 >
-                    <input
-                        className="p-[10px] outline-none bg-[#111A1F] w-full rounded-[4px]"
-                        type="text"
-                        placeholder="Сообщение..."
-                        value={text}
-                        onChange={(e) => setText(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                                e.preventDefault();
-                                sendMessage();
-                            }
-                        }}
-                    />
+                    <div className="w-full flex gap-[5px]">
+                        <input
+                            className="p-[10px] outline-none bg-[#111A1F] w-full rounded-[4px]"
+                            type="text"
+                            placeholder="Сообщение..."
+                            value={text}
+                            onChange={(e) => setText(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    sendMessage();
+                                }
+                            }}
+                        />
+                        <button
+                            onClick={sendGameInvite}
+                            className="p-[20px] whitespace-nowrap cursor-pointer bg-amber-500 hover:bg-amber-600 rounded-[4px]">ПРИГЛАСИТЬ В ИГРУ</button>
+                    </div>
                     <p className="opacity-50 text-sm px-2">freenode (IRC)</p>
                 </form>
             )}

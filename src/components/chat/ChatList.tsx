@@ -31,10 +31,15 @@ const ChatList: React.FC<ChatListProps> = ({ setChatId }) => {
         const chatExists = prev.some((chat) => chat.id === chatId);
 
         if (chatExists) {
-          return prev.map((chat) =>
+          const updated = prev.map((chat) =>
             chat.id === chatId
               ? { ...chat, last_message, last_timestamp, unread_count: unread_count || 0 }
               : chat
+          );
+
+          return updated.sort(
+            (a, b) =>
+              new Date(b.last_timestamp || 0).getTime() - new Date(a.last_timestamp || 0).getTime()
           );
         }
 
@@ -89,7 +94,11 @@ const ChatList: React.FC<ChatListProps> = ({ setChatId }) => {
   const fetchChats = async () => {
     try {
       const res = await api.get("/chats/my");
-      setChats(res.data);
+      const sortedChats = res.data.sort(
+        (a: ChatInList, b: ChatInList) =>
+          new Date(b.last_timestamp || 0).getTime() - new Date(a.last_timestamp || 0).getTime()
+      );
+      setChats(sortedChats);
       res.data.map((chat: any) => {
         if (chat.chat_type === 'direct' && chat.online !== null && chat.user_id) {
           setOnlineUsers((prev) => {
@@ -136,8 +145,8 @@ const ChatList: React.FC<ChatListProps> = ({ setChatId }) => {
           console.log("Updated chats:", updatedChats);
           return updatedChats;
         });
-        
- 
+
+
         setPopupPos(null);
         setPopupChatId(null);
       }
@@ -152,7 +161,7 @@ const ChatList: React.FC<ChatListProps> = ({ setChatId }) => {
       const res = await api.post(`/chats/${chatId}/clear`);
       if (res.data?.success) {
         console.log("Success clear");
-        
+
         setPopupPos(null);
         setPopupChatId(null);
       }
@@ -279,7 +288,10 @@ const ChatList: React.FC<ChatListProps> = ({ setChatId }) => {
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold truncate">{chat.display_name}</div>
                     {chat.last_message && (
-                      <div className="text-sm text-gray-400 truncate">{chat.last_message}</div>
+                      <div className="w-full flex justify-between">
+                        <div className="text-sm text-gray-400 truncate">{chat.last_message}</div>
+                        <div className="text-sm text-gray-400 truncate">{new Date(String(chat.last_timestamp)).toLocaleString().slice(12, 17)}</div>
+                      </div>
                     )}
                     {chat.unread_count > 0 && (
                       <div className="absolute right-2 bg-red-500 text-white text-xs rounded-full px-2 py-1">

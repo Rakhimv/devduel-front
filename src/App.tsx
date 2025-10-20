@@ -6,6 +6,7 @@ import PrivateRout from './routes/PrivateRoute';
 import UserExRoute from './routes/UserExRoute';
 import TitleAnimation from './components/ui/TitleAnimation';
 import Dashboard from './pages/Dashboard';
+import Game from './pages/Game';
 
 
 function App() {
@@ -26,6 +27,7 @@ function App() {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/msg/" element={<Dashboard />} />
                 <Route path="/msg/:id" element={<Dashboard />} />
+                <Route path="/game/:sessionId" element={<Game />} />
               </Route>
             </Routes>
           </AuthProvider>

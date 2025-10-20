@@ -22,4 +22,13 @@ export interface Message {
   text: string;
   timestamp: string;
   is_read: boolean;
+  message_type?: 'text' | 'game_invite';
+  game_invite_data?: {
+    invite_id: string;
+    from_user_id: number;
+    from_username: string;
+    to_user_id: number;
+    to_username: string;
+    status: 'pending' | 'accepted' | 'declined' | 'expired';
+  };
 }
