@@ -172,7 +172,28 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
         {gameSession.status === 'finished' && (
           <div className="text-center">
             <h3 className="text-2xl mb-4">Игра завершена!</h3>
-            <p className="text-lg mb-4">Время истекло</p>
+            
+            {gameSession.gameResult === 'timeout' && (
+              <div className="mb-4">
+                <p className="text-lg mb-2">⏰ Время истекло</p>
+                <p className="text-gray-400">Игра длилась: {gameSession.duration / 60000} минут</p>
+              </div>
+            )}
+            
+            {gameSession.gameResult === 'player_left' && (
+              <div className="mb-4">
+                <p className="text-lg mb-2">🚪 Противник покинул игру</p>
+                <p className="text-gray-400">Игра длилась: {gameSession.duration / 60000} минут</p>
+              </div>
+            )}
+            
+            {gameSession.winner && (
+              <div className="mb-4">
+                <p className="text-lg mb-2">🏆 Победитель: {gameSession.winner.username}</p>
+                <p className="text-gray-400">Игра длилась: {gameSession.duration / 60000} минут</p>
+              </div>
+            )}
+            
             <button
               onClick={onLeave}
               className="bg-blue-600 hover:bg-blue-700 px-8 py-3 rounded-lg text-lg font-semibold"

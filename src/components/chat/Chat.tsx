@@ -3,11 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../../api/api";
 import type { Message } from "../../types/chat";
 import { useAuth } from "../../hooks/useAuth";
+import { useGame } from "../../context/GameContext";
 import { formatLastSeen } from "../../utils/lastSeen";
 import GameInviteComponent from "../game/GameInvite";
 
 const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => void }> = ({ chatId, setChatId }) => {
     const { user, socket } = useAuth();
+    const { isInGame } = useGame();
     const navigate = useNavigate();
     const [messages, setMessages] = useState<Message[]>([]);
     const [text, setText] = useState("");
@@ -15,6 +17,7 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
     const [showUnreadDivider, setShowUnreadDivider] = useState(false);
     const [lastSeenText, setLastSeenText] = useState("");
     const [isUserOnline, setIsUserOnline] = useState(false);
+    const [gameEndInfo, setGameEndInfo] = useState<{[inviteId: string]: {reason: string, duration: number}}>({});
     const messageEndRef = useRef<HTMLDivElement>(null);
     const currentChatIdRef = useRef<string | null>(null);
 
@@ -25,6 +28,7 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
         setShowUnreadDivider(false);
         setLastSeenText("");
         setIsUserOnline(false);
+        setGameEndInfo({});
         currentChatIdRef.current = null;
     }
 
@@ -79,7 +83,89 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
         };
 
         const handleGameInviteAccepted = (session: any) => {
+            console.log('Game invite accepted, navigating to:', session.id);
             navigate(`/game/${session.id}`);
+        };
+
+        const handleGameEndNotification = (data: any) => {
+            const gameEndMessage: Message = {
+                id: Date.now(),
+                chat_id: chatId,
+                user_id: 0,
+                username: 'Система',
+                text: `🎮 Игра завершена! ${data.reason === 'timeout' ? 'Время истекло' : data.reason === 'player_left' ? 'Игрок покинул игру' : 'Игра завершена'}. Длительность: ${Math.round(data.duration / 60000)} минут`,
+                timestamp: new Date().toISOString(),
+                is_read: false,
+                message_type: 'text' as const
+            };
+            setMessages((prev) => [...prev, gameEndMessage]);
+            
+            setGameEndInfo((prev) => {
+                const newInfo = {...prev};
+                messages.forEach(msg => {
+                    if (msg.game_invite_data?.status === 'accepted') {
+                        newInfo[msg.game_invite_data.invite_id] = {
+                            reason: data.reason,
+                            duration: data.duration
+                        };
+                    }
+                });
+                return newInfo;
+            });
+        };
+
+        const handleGameInviteExpired = (data: any) => {
+            console.log('Game invite expired:', data.inviteId);
+            setMessages((prev) => 
+                prev.map((msg) => {
+                    if (msg.game_invite_data?.invite_id === data.inviteId) {
+                        return {
+                            ...msg,
+                            game_invite_data: {
+                                ...msg.game_invite_data,
+                                status: 'expired'
+                            }
+                        } as Message;
+                    }
+                    return msg;
+                })
+            );
+        };
+
+        const handleGameInviteDeclined = (data: any) => {
+            console.log('Game invite declined:', data.inviteId);
+            setMessages((prev) => 
+                prev.map((msg) => {
+                    if (msg.game_invite_data?.invite_id === data.inviteId) {
+                        return {
+                            ...msg,
+                            game_invite_data: {
+                                ...msg.game_invite_data,
+                                status: 'declined'
+                            }
+                        } as Message;
+                    }
+                    return msg;
+                })
+            );
+        };
+
+        const handleGameInviteAbandoned = (data: any) => {
+            console.log('Game invite abandoned:', data.inviteId);
+            setMessages((prev) => 
+                prev.map((msg) => {
+                    if (msg.game_invite_data?.invite_id === data.inviteId) {
+                        return {
+                            ...msg,
+                            game_invite_data: {
+                                ...msg.game_invite_data,
+                                status: 'abandoned'
+                            }
+                        } as Message;
+                    }
+                    return msg;
+                })
+            );
         };
 
         socket.on("new_message", handleNewMessage);
@@ -87,6 +173,10 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
         socket.on("chat_history_cleared", handleChatHistoryCleared);
         socket.on("user_status", handleUserStatus);
         socket.on("game_invite_accepted", handleGameInviteAccepted);
+        socket.on("game_end_notification", handleGameEndNotification);
+        socket.on("game_invite_expired", handleGameInviteExpired);
+        socket.on("game_invite_declined", handleGameInviteDeclined);
+        socket.on("game_invite_abandoned", handleGameInviteAbandoned);
 
         socket.emit("join_chat", chatId);
 
@@ -96,6 +186,10 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
             socket.off("chat_history_cleared", handleChatHistoryCleared);
             socket.off("user_status", handleUserStatus);
             socket.off("game_invite_accepted", handleGameInviteAccepted);
+            socket.off("game_end_notification", handleGameEndNotification);
+            socket.off("game_invite_expired", handleGameInviteExpired);
+            socket.off("game_invite_declined", handleGameInviteDeclined);
+            socket.off("game_invite_abandoned", handleGameInviteAbandoned);
         };
     }, [chatId, socket, user, chatInfo]);
 
@@ -202,6 +296,13 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
         if (!targetUserId) return;
 
         try {
+            // Сначала удаляем предыдущие приглашения для этого пользователя
+            socket.emit("remove_previous_invites", {
+                chatId,
+                toUserId: targetUserId
+            });
+
+            // Затем отправляем новое приглашение
             socket.emit("send_game_invite", {
                 chatId,
                 toUserId: targetUserId
@@ -301,20 +402,31 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                                         status: msg.game_invite_data.status
                                     }}
                                     onAccept={() => {
-                                        if (socket && msg.game_invite_data) {
+                                        if (socket && msg.game_invite_data && msg.game_invite_data.invite_id && !isInGame) {
+                                            console.log('Accepting invite:', msg.game_invite_data.invite_id);
                                             socket.emit("accept_game_invite", {
                                                 inviteId: msg.game_invite_data.invite_id
                                             });
+                                        } else if (isInGame) {
+                                            console.log('Cannot accept invite - already in game');
+                                        } else {
+                                            console.error('Cannot accept invite - missing data:', msg.game_invite_data);
                                         }
                                     }}
                                     onDecline={() => {
-                                        if (socket && msg.game_invite_data) {
+                                        if (socket && msg.game_invite_data && msg.game_invite_data.invite_id) {
+                                            console.log('Declining invite:', msg.game_invite_data.invite_id);
                                             socket.emit("decline_game_invite", {
                                                 inviteId: msg.game_invite_data.invite_id
                                             });
+                                        } else {
+                                            console.error('Cannot decline invite - missing data:', msg.game_invite_data);
                                         }
                                     }}
                                     isFromCurrentUser={msg.user_id === user?.id}
+                                    gameEndReason={gameEndInfo[msg.game_invite_data?.invite_id || '']?.reason}
+                                    gameDuration={gameEndInfo[msg.game_invite_data?.invite_id || '']?.duration}
+                                    isInGame={isInGame}
                                 />
                             </div>
                         ) : (
@@ -356,7 +468,14 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                         />
                         <button
                             onClick={sendGameInvite}
-                            className="p-[20px] whitespace-nowrap cursor-pointer bg-amber-500 hover:bg-amber-600 rounded-[4px]">ПРИГЛАСИТЬ В ИГРУ</button>
+                            disabled={isInGame}
+                            className={`p-[20px] whitespace-nowrap rounded-[4px] ${
+                                isInGame 
+                                    ? 'cursor-not-allowed bg-gray-500 text-gray-300' 
+                                    : 'cursor-pointer bg-amber-500 hover:bg-amber-600'
+                            }`}>
+                            {isInGame ? 'В ИГРЕ' : 'ПРИГЛАСИТЬ В ИГРУ'}
+                        </button>
                     </div>
                     <p className="opacity-50 text-sm px-2">freenode (IRC)</p>
                 </form>

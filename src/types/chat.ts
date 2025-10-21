@@ -29,6 +29,6 @@ export interface Message {
     from_username: string;
     to_user_id: number;
     to_username: string;
-    status: 'pending' | 'accepted' | 'declined' | 'expired';
+    status: 'pending' | 'accepted' | 'declined' | 'expired' | 'abandoned';
   };
 }

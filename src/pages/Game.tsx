@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useGame } from '../context/GameContext';
 import GameInterface from '../components/game/GameInterface';
 import type { GameSession } from '../types/game';
 
 const Game: React.FC = () => {
     const { sessionId } = useParams<{ sessionId: string }>();
     const { user, socket } = useAuth();
+    const { setIsInGame, setGameSessionId, setGameDuration } = useGame();
     const navigate = useNavigate();
     const [gameSession, setGameSession] = useState<GameSession | null>(null);
     const [loading, setLoading] = useState(true);
@@ -18,11 +20,19 @@ const Game: React.FC = () => {
         const handleGameSessionUpdate = (session: GameSession) => {
             setGameSession(session);
             setLoading(false);
+            
+            setIsInGame(true);
+            setGameSessionId(session.id);
+            setGameDuration(session.duration);
         };
 
         const handleGameSessionEnd = (data: any) => {
             setGameSession(null);
             setLoading(false);
+            setIsInGame(false);
+            setGameSessionId(null);
+            setGameDuration(null);
+            
             if (data.reason === 'player_left') {
                 setError('Другой игрок покинул игру');
             } else {
@@ -33,6 +43,9 @@ const Game: React.FC = () => {
         const handleGameNotFound = () => {
             setError('Игровая сессия не найдена');
             setLoading(false);
+            setIsInGame(false);
+            setGameSessionId(null);
+            setGameDuration(null);
         };
 
         socket.on('game_session_update', handleGameSessionUpdate);
@@ -45,6 +58,9 @@ const Game: React.FC = () => {
             socket.off('game_session_update', handleGameSessionUpdate);
             socket.off('game_session_end', handleGameSessionEnd);
             socket.off('game_not_found', handleGameNotFound);
+            setIsInGame(false);
+            setGameSessionId(null);
+            setGameDuration(null);
         };
     }, [socket, sessionId, user]);
 
@@ -52,6 +68,9 @@ const Game: React.FC = () => {
         if (socket && sessionId) {
             socket.emit('leave_game', { sessionId });
         }
+        setIsInGame(false);
+        setGameSessionId(null);
+        setGameDuration(null);
         navigate('/msg');
     };
 

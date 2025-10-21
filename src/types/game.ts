@@ -5,7 +5,7 @@ export interface GameInvite {
   toUserId: number;
   toUsername: string;
   timestamp: string;
-  status: 'pending' | 'accepted' | 'declined' | 'expired';
+  status: 'pending' | 'accepted' | 'declined' | 'expired' | 'abandoned';
 }
 
 export interface GameSession {
@@ -22,8 +22,14 @@ export interface GameSession {
   };
   status: 'waiting' | 'ready' | 'in_progress' | 'finished';
   startTime?: string;
+  endTime?: string;
   duration: number; 
   timeRemaining: number;
+  winner?: {
+    id: number;
+    username: string;
+  };
+  gameResult?: 'timeout' | 'player_left' | 'completed';
 }
 
 export interface GameTimer {

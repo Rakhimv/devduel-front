@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { GameProvider } from './context/GameContext';
+import GameNavigationGuard from './components/GameNavigationGuard';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import PrivateRout from './routes/PrivateRoute';
@@ -17,19 +19,23 @@ function App() {
 
         <Route path="/*" element={
           <AuthProvider>
-            <Routes>
-              <Route element={<UserExRoute />}>
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-              </Route>
+            <GameProvider>
+              <GameNavigationGuard>
+                <Routes>
+                  <Route element={<UserExRoute />}>
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
+                  </Route>
 
-              <Route element={<PrivateRout />}>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/msg/" element={<Dashboard />} />
-                <Route path="/msg/:id" element={<Dashboard />} />
-                <Route path="/game/:sessionId" element={<Game />} />
-              </Route>
-            </Routes>
+                  <Route element={<PrivateRout />}>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/msg/" element={<Dashboard />} />
+                    <Route path="/msg/:id" element={<Dashboard />} />
+                    <Route path="/game/:sessionId" element={<Game />} />
+                  </Route>
+                </Routes>
+              </GameNavigationGuard>
+            </GameProvider>
           </AuthProvider>
         } />
       </Routes>
