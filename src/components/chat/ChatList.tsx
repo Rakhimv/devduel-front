@@ -78,16 +78,27 @@ const ChatList: React.FC<ChatListProps> = ({ setChatId }) => {
       );
     };
 
+    const handleChatCreated = ({ chatId }: any) => {
+      fetchChats();
+      
+      if (chatId && !chats.some(chat => chat.id === chatId)) {
+        navigate(`/msg/${chatId}`);
+        setChatId(chatId);
+      }
+    };
+
     socket.on("chat_update", handleChatUpdate);
     socket.on("user_status", handleUserStatus);
     socket.on("chat_deleted", handleChatDeleted);
     socket.on("chat_history_cleared", handleChatHistoryCleared);
+    socket.on("chat_created", handleChatCreated);
 
     return () => {
       socket.off("chat_update", handleChatUpdate);
       socket.off("user_status", handleUserStatus);
       socket.off("chat_deleted", handleChatDeleted);
       socket.off("chat_history_cleared", handleChatHistoryCleared);
+      socket.off("chat_created", handleChatCreated);
     };
   }, [socket, location.pathname, navigate, setChatId]);
 

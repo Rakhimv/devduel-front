@@ -18,6 +18,7 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
     const [lastSeenText, setLastSeenText] = useState("");
     const [isUserOnline, setIsUserOnline] = useState(false);
     const [gameEndInfo, setGameEndInfo] = useState<{[inviteId: string]: {reason: string, duration: number}}>({});
+    const [isInviteSending, setIsInviteSending] = useState(false);
     const messageEndRef = useRef<HTMLDivElement>(null);
     const currentChatIdRef = useRef<string | null>(null);
 
@@ -290,21 +291,48 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
 
 
     const sendGameInvite = async () => {
-        if (!socket || !chatId || !chatInfo) return;
+        if (!socket || !chatInfo) return;
 
         const targetUserId = chatInfo.targetUser?.id || chatInfo.user?.id;
         if (!targetUserId) return;
 
-        try {
-            // Сначала удаляем предыдущие приглашения для этого пользователя
-            socket.emit("remove_previous_invites", {
-                chatId,
-                toUserId: targetUserId
-            });
+        // Небольшая задержка для предотвращения случайных множественных кликов
+        if (isInviteSending) return;
+        setIsInviteSending(true);
+        
+        setTimeout(() => {
+            setIsInviteSending(false);
+        }, 1000);
 
-            // Затем отправляем новое приглашение
+        try {
+            let finalChatId = chatId;
+
+            if (!chatInfo?.chatExists && chatInfo?.privacy_type === "private") {
+                try {
+                    const res = await api.post("/chats/private", { friendId: chatInfo.targetUser.id });
+                    finalChatId = res.data.chatId;
+                    setChatInfo({ ...chatInfo, chatId: finalChatId, chatExists: true });
+                    socket.emit("join_chat", finalChatId);
+
+                    setChatId(finalChatId);
+                    navigate(`/msg/${finalChatId}`, { replace: true });
+                    
+                    setTimeout(() => {
+                        socket.emit("send_game_invite", {
+                            chatId: finalChatId,
+                            toUserId: targetUserId
+                        });
+                    }, 100);
+                    
+                    return;
+                } catch (err) {
+                    console.error("Error creating chat:", err);
+                    return;
+                }
+            }
+
             socket.emit("send_game_invite", {
-                chatId,
+                chatId: finalChatId,
                 toUserId: targetUserId
             });
         } catch (err) {
@@ -468,13 +496,13 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                         />
                         <button
                             onClick={sendGameInvite}
-                            disabled={isInGame}
+                            disabled={isInGame || isInviteSending}
                             className={`p-[20px] whitespace-nowrap rounded-[4px] ${
-                                isInGame 
+                                isInGame || isInviteSending
                                     ? 'cursor-not-allowed bg-gray-500 text-gray-300' 
                                     : 'cursor-pointer bg-amber-500 hover:bg-amber-600'
                             }`}>
-                            {isInGame ? 'В ИГРЕ' : 'ПРИГЛАСИТЬ В ИГРУ'}
+                            {isInGame ? 'В ИГРЕ' : isInviteSending ? 'ОТПРАВКА...' : 'ПРИГЛАСИТЬ В ИГРУ'}
                         </button>
                     </div>
                     <p className="opacity-50 text-sm px-2">freenode (IRC)</p>
