@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { GameSession, GameTimer } from '../../types/game';
+import type { GameSession, GameTimer } from '../../types/game';
+import CodeEditor from '../IDE/CodeEditor';
+import GameCanvas from './GameCanvas';
 
 interface GameInterfaceProps {
   gameSession: GameSession;
@@ -22,7 +24,6 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
 
   const isPlayer1 = gameSession.player1.id === currentUserId;
   const currentPlayer = isPlayer1 ? gameSession.player1 : gameSession.player2;
-  const opponent = isPlayer1 ? gameSession.player2 : gameSession.player1;
 
   useEffect(() => {
     if (gameSession.status === 'in_progress' && gameSession.startTime) {
@@ -57,7 +58,7 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
   };
 
   return (
-    <div className="w-full h-full bg-[#111A1F] text-white flex flex-col">
+    <div className="w-full bg-[#111A1F] text-white flex flex-col">
       {/* Header */}
       <div className="bg-[#485761] p-4 border-b border-gray-600">
         <div className="flex justify-between items-center">
@@ -131,40 +132,57 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
         )}
 
         {gameSession.status === 'in_progress' && (
-          <div className="text-center">
-            <div className="text-6xl font-bold text-yellow-500 mb-8">
-              {formatTime(timer.minutes, timer.seconds)}
+          <div className="w-full h-full flex flex-col">
+            {/* Game Header with Timer */}
+            <div className="bg-[#485761] p-4 border-b border-gray-600">
+              <div className="flex justify-between items-center">
+                <div className="flex gap-8">
+                  {/* Player 1 */}
+                  <div className={`p-4 rounded-lg border-2 ${
+                    isPlayer1 ? 'border-blue-500 bg-blue-900/20' : 'border-gray-600 bg-gray-800/20'
+                  }`}>
+                    <div className="text-center">
+                      <div className="text-lg font-semibold">{gameSession.player1.username}</div>
+                      <div className="text-sm text-gray-400">Игрок 1</div>
+                    </div>
+                  </div>
+
+                  {/* VS */}
+                  <div className="flex items-center">
+                    <div className="text-2xl font-bold text-yellow-500">VS</div>
+                  </div>
+
+                  {/* Player 2 */}
+                  <div className={`p-4 rounded-lg border-2 ${
+                    !isPlayer1 ? 'border-blue-500 bg-blue-900/20' : 'border-gray-600 bg-gray-800/20'
+                  }`}>
+                    <div className="text-center">
+                      <div className="text-lg font-semibold">{gameSession.player2.username}</div>
+                      <div className="text-sm text-gray-400">Игрок 2</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Timer */}
+                <div className="text-4xl font-bold text-yellow-500">
+                  {formatTime(timer.minutes, timer.seconds)}
+                </div>
+              </div>
             </div>
-            
-            <div className="flex gap-8 mb-8">
-              {/* Player 1 */}
-              <div className={`p-6 rounded-lg border-2 ${
-                isPlayer1 ? 'border-blue-500 bg-blue-900/20' : 'border-gray-600 bg-gray-800/20'
-              }`}>
-                <div className="text-center">
-                  <div className="text-lg font-semibold">{gameSession.player1.username}</div>
-                  <div className="text-sm text-gray-400">Игрок 1</div>
+
+            {/* Game Content - Split Screen */}
+            <div className="flex-1 flex">
+              {/* Left Side - Code Editor */}
+              <div className="w-1/2 border-r border-gray-600">
+                <div className="h-full">
+                  <CodeEditor />
                 </div>
               </div>
 
-              {/* VS */}
-              <div className="flex items-center">
-                <div className="text-4xl font-bold text-yellow-500">VS</div>
+              {/* Right Side - Game Canvas */}
+              <div className="w-1/2">
+                <GameCanvas width={800} height={600} />
               </div>
-
-              {/* Player 2 */}
-              <div className={`p-6 rounded-lg border-2 ${
-                !isPlayer1 ? 'border-blue-500 bg-blue-900/20' : 'border-gray-600 bg-gray-800/20'
-              }`}>
-                <div className="text-center">
-                  <div className="text-lg font-semibold">{gameSession.player2.username}</div>
-                  <div className="text-sm text-gray-400">Игрок 2</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="text-lg text-gray-400">
-              Игра в процессе... Время ограничено!
             </div>
           </div>
         )}

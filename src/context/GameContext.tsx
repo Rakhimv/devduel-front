@@ -45,6 +45,30 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     }
   }, []);
 
+  useEffect(() => {
+    if (gameSessionId) {
+      localStorage.setItem('gameSessionId', gameSessionId);
+    } else {
+      localStorage.removeItem('gameSessionId');
+    }
+  }, [gameSessionId]);
+
+  useEffect(() => {
+    if (isInGame) {
+      localStorage.setItem('isInGame', 'true');
+    } else {
+      localStorage.removeItem('isInGame');
+    }
+  }, [isInGame]);
+
+  useEffect(() => {
+    if (gameDuration) {
+      localStorage.setItem('gameDuration', gameDuration.toString());
+    } else {
+      localStorage.removeItem('gameDuration');
+    }
+  }, [gameDuration]);
+
   const leaveGame = () => {
     if (socket && gameSessionId) {
       socket.emit('leave_game', { sessionId: gameSessionId });

@@ -8,14 +8,14 @@ export default function CodeIDE() {
   const [code, setCode] = useState("// Пиши код тут...");
   loader.config({ monaco });
   return (
-    <div className="w-full mt-[50px] h-[20vh] flex flex-col bg-black text-white">
+    <div className="w-full h-full flex flex-col bg-black text-white">
 
-      <div className="flex items-center gap-4 p-2 ">
-        <span className="font-bold">My IDE</span>
+      <div className="flex items-center gap-4 p-2 border-b border-gray-600">
+        <span className="font-bold">Code Editor</span>
         <select
           value={language}
           onChange={(e) => setLanguage(e.target.value)}
-          className="bg-black text-white rounded px-2 py-1"
+          className="bg-gray-800 text-white rounded px-2 py-1 border border-gray-600"
         >
           {languages.map((lang) => (
             <option key={lang} value={lang}>
@@ -27,7 +27,7 @@ export default function CodeIDE() {
 
       <div className="flex-1">
         <Editor
-          height="20vh"
+          height="100%"
           defaultLanguage={language}
           language={language}
           theme="hc-black"

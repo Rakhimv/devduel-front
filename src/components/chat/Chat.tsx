@@ -296,7 +296,6 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
         const targetUserId = chatInfo.targetUser?.id || chatInfo.user?.id;
         if (!targetUserId) return;
 
-        // Небольшая задержка для предотвращения случайных множественных кликов
         if (isInviteSending) return;
         setIsInviteSending(true);
         
