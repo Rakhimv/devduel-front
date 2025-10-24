@@ -58,9 +58,6 @@ const Game: React.FC = () => {
             socket.off('game_session_update', handleGameSessionUpdate);
             socket.off('game_session_end', handleGameSessionEnd);
             socket.off('game_not_found', handleGameNotFound);
-            setIsInGame(false);
-            setGameSessionId(null);
-            setGameDuration(null);
         };
     }, [socket, sessionId, user]);
 

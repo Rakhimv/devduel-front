@@ -1,12 +1,14 @@
 import React from 'react';
 import { useGame } from '../context/GameContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const GameStatusBanner: React.FC = () => {
   const { isInGame, gameSessionId, gameDuration } = useGame();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  if (!isInGame || !gameSessionId) {
+  // Don't show banner on game page
+  if (!isInGame || !gameSessionId || location.pathname.startsWith('/game')) {
     return null;
   }
 

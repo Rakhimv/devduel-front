@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { GameSession, GameTimer } from '../../types/game';
 import CodeEditor from '../IDE/CodeEditor';
 import GameCanvas from './GameCanvas';
+import { useCode } from '../../context/CodeContext';
 
 interface GameInterfaceProps {
   gameSession: GameSession;
@@ -22,6 +23,7 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
     isActive: false
   });
 
+  const { clearCode } = useCode();
   const isPlayer1 = gameSession.player1.id === currentUserId;
   const currentPlayer = isPlayer1 ? gameSession.player1 : gameSession.player2;
 
@@ -63,12 +65,20 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
       <div className="bg-[#485761] p-4 border-b border-gray-600">
         <div className="flex justify-between items-center">
           <h2 className="text-lg font-semibold">Игровая сессия</h2>
-          <button
-            onClick={onLeave}
-            className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-sm"
-          >
-            Покинуть игру
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={clearCode}
+              className="bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded text-sm"
+            >
+              Очистить код
+            </button>
+            <button
+              onClick={onLeave}
+              className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-sm"
+            >
+              Покинуть игру
+            </button>
+          </div>
         </div>
       </div>
 

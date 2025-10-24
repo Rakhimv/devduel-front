@@ -88,6 +88,11 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
             navigate(`/game/${session.id}`);
         };
 
+        const handleGameInviteError = (data: any) => {
+            console.log('Game invite error:', data.message);
+            alert(data.message);
+        };
+
         const handleGameEndNotification = (data: any) => {
             const gameEndMessage: Message = {
                 id: Date.now(),
@@ -174,6 +179,7 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
         socket.on("chat_history_cleared", handleChatHistoryCleared);
         socket.on("user_status", handleUserStatus);
         socket.on("game_invite_accepted", handleGameInviteAccepted);
+        socket.on("game_invite_error", handleGameInviteError);
         socket.on("game_end_notification", handleGameEndNotification);
         socket.on("game_invite_expired", handleGameInviteExpired);
         socket.on("game_invite_declined", handleGameInviteDeclined);
@@ -187,6 +193,7 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
             socket.off("chat_history_cleared", handleChatHistoryCleared);
             socket.off("user_status", handleUserStatus);
             socket.off("game_invite_accepted", handleGameInviteAccepted);
+            socket.off("game_invite_error", handleGameInviteError);
             socket.off("game_end_notification", handleGameEndNotification);
             socket.off("game_invite_expired", handleGameInviteExpired);
             socket.off("game_invite_declined", handleGameInviteDeclined);

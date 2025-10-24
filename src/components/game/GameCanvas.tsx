@@ -23,18 +23,16 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     let app: PIXI.Application | null = null;
 
     try {
-      // Get container dimensions
       const parentElement = canvasRef.current.parentElement;
       let canvasWidth = width;
       let canvasHeight = height;
 
       if (parentElement) {
         const rect = parentElement.getBoundingClientRect();
-        canvasWidth = Math.min(width, rect.width - 32); // 32px for padding
+        canvasWidth = Math.min(width, rect.width - 32); 
         canvasHeight = Math.min(height, rect.height - 32);
       }
 
-      // Create PIXI application
       app = new PIXI.Application({
         view: canvasRef.current,
         width: canvasWidth,
@@ -45,24 +43,20 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
       appRef.current = app;
 
-      // Create game scene
       const gameContainer = new PIXI.Container();
       app.stage.addChild(gameContainer);
 
-      // Create game field
       const gameField = new PIXI.Graphics();
       gameField.beginFill(0x2a2a2a);
       gameField.drawRect(0, 0, canvasWidth, canvasHeight);
       gameField.endFill();
       gameContainer.addChild(gameField);
 
-      // Add borders
       const border = new PIXI.Graphics();
       border.lineStyle(2, 0x444444);
       border.drawRect(0, 0, canvasWidth, canvasHeight);
       gameContainer.addChild(border);
 
-      // Add "Game Field" text
       const style = new PIXI.TextStyle({
         fontFamily: 'Arial',
         fontSize: 24,
@@ -75,7 +69,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       gameText.y = canvasHeight / 2 - gameText.height / 2;
       gameContainer.addChild(gameText);
 
-      // Animation
       let time = 0;
       const animate = () => {
         time += 0.01;
@@ -92,21 +85,17 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         animationIdRef.current = requestAnimationFrame(animateLoop);
       }
 
-      // Cleanup function
       return () => {
         try {
-          // Stop ticker if it exists
           if (app?.ticker && typeof app.ticker.remove === 'function') {
             app.ticker.remove(animate);
           }
 
-          // Stop requestAnimationFrame if used
           if (animationIdRef.current) {
             cancelAnimationFrame(animationIdRef.current);
             animationIdRef.current = null;
           }
 
-          // Destroy PIXI application if it exists
           if (app && typeof app.destroy === 'function') {
             app.destroy(true);
             app = null;

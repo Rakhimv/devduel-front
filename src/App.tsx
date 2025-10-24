@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { GameProvider } from './context/GameContext';
+import { CodeProvider } from './context/CodeContext';
 import GameNavigationGuard from './components/GameNavigationGuard';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -19,37 +20,39 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <GameProvider>
-          <GameNavigationGuard>
-            <Routes>
-              <Route path='/anim' element={<TitleAnimation />} />
+          <CodeProvider>
+            <GameNavigationGuard>
+              <Routes>
+                <Route path='/anim' element={<TitleAnimation />} />
 
-              <Route element={<UserExRoute />}>
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-              </Route>
+                <Route element={<UserExRoute />}>
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                </Route>
 
-              <Route element={<PrivateRout />}>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/msg/" element={<Dashboard />} />
-                <Route path="/msg/:id" element={<Dashboard />} />
-                <Route path="/rating" element={
-                  <HeaderLayout>
-                    <Rating />
-                  </HeaderLayout>
-                } />
-                <Route path="/profile" element={
-                  <HeaderLayout>
-                    <Profile />
-                  </HeaderLayout>
-                } />
-                <Route path="/game/:sessionId" element={
-                  <HeaderLayout>
-                    <Game />
-                  </HeaderLayout>
-                } />
-              </Route>
-            </Routes>
-          </GameNavigationGuard>
+                <Route element={<PrivateRout />}>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/msg/" element={<Dashboard />} />
+                  <Route path="/msg/:id" element={<Dashboard />} />
+                  <Route path="/rating" element={
+                    <HeaderLayout>
+                      <Rating />
+                    </HeaderLayout>
+                  } />
+                  <Route path="/profile" element={
+                    <HeaderLayout>
+                      <Profile />
+                    </HeaderLayout>
+                  } />
+                  <Route path="/game/:sessionId" element={
+                    <HeaderLayout>
+                      <Game />
+                    </HeaderLayout>
+                  } />
+                </Route>
+              </Routes>
+            </GameNavigationGuard>
+          </CodeProvider>
         </GameProvider>
       </AuthProvider>
     </BrowserRouter>

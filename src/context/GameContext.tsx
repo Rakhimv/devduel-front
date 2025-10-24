@@ -10,6 +10,7 @@ interface GameContextType {
   leaveGame: () => void;
   gameDuration: number | null;
   setGameDuration: (duration: number | null) => void;
+  validateSession: (sessionId: string) => Promise<boolean>;
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -33,16 +34,39 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   const { socket } = useAuth();
   const navigate = useNavigate();
 
+  const validateSession = async (sessionId: string): Promise<boolean> => {
+    if (!sessionId || !socket) return false;
+    
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => resolve(false), 5000);
+      
+      const handleValidation = (isValid: boolean) => {
+        clearTimeout(timeout);
+        socket.off('session_validation_result', handleValidation);
+        resolve(isValid);
+      };
+      
+      socket.on('session_validation_result', handleValidation);
+      socket.emit('validate_game_session', { sessionId });
+    });
+  };
+
   useEffect(() => {
-    const savedGameSession = localStorage.getItem('gameSessionId');
-    if (savedGameSession) {
-      setGameSessionId(savedGameSession);
-      setIsInGame(true);
+    const restoreSession = () => {
+      const savedGameSession = localStorage.getItem('gameSessionId');
+      const savedIsInGame = localStorage.getItem('isInGame');
       const savedDuration = localStorage.getItem('gameDuration');
-      if (savedDuration) {
-        setGameDuration(parseInt(savedDuration));
+
+      if (savedGameSession && savedIsInGame === 'true') {
+        setGameSessionId(savedGameSession);
+        setIsInGame(true);
+        if (savedDuration) {
+          setGameDuration(parseInt(savedDuration));
+        }
       }
-    }
+    };
+
+    restoreSession();
   }, []);
 
   useEffect(() => {
@@ -77,6 +101,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     setGameSessionId(null);
     setGameDuration(null);
     localStorage.removeItem('gameSessionId');
+    localStorage.removeItem('isInGame');
     localStorage.removeItem('gameDuration');
     navigate('/msg');
   };
@@ -89,6 +114,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       setGameSessionId(data.sessionId);
       setGameDuration(data.duration);
       localStorage.setItem('gameSessionId', data.sessionId);
+      localStorage.setItem('isInGame', 'true');
       localStorage.setItem('gameDuration', data.duration.toString());
     };
 
@@ -97,17 +123,32 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       setGameSessionId(null);
       setGameDuration(null);
       localStorage.removeItem('gameSessionId');
+      localStorage.removeItem('isInGame');
       localStorage.removeItem('gameDuration');
+    };
+
+    const handleGameInviteAccepted = (session: any) => {
+      if (isInGame && gameSessionId) {
+        socket.emit('leave_game', { sessionId: gameSessionId });
+      }
+      setIsInGame(true);
+      setGameSessionId(session.id);
+      setGameDuration(session.duration);
+      localStorage.setItem('gameSessionId', session.id);
+      localStorage.setItem('isInGame', 'true');
+      localStorage.setItem('gameDuration', session.duration.toString());
     };
 
     socket.on('game_session_joined', handleGameSessionJoined);
     socket.on('game_session_end', handleGameSessionEnd);
+    socket.on('game_invite_accepted', handleGameInviteAccepted);
 
     return () => {
       socket.off('game_session_joined', handleGameSessionJoined);
       socket.off('game_session_end', handleGameSessionEnd);
+      socket.off('game_invite_accepted', handleGameInviteAccepted);
     };
-  }, [socket]);
+  }, [socket, isInGame, gameSessionId]);
 
   return (
     <GameContext.Provider
@@ -119,6 +160,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
         leaveGame,
         gameDuration,
         setGameDuration,
+        validateSession,
       }}
     >
       {children}

@@ -84,3 +84,22 @@ export const logout = async (): Promise<void> => {
     console.error("Ошибка при выходе");
   }
 };
+
+export const runCode = async (data: {
+  source_code: string;
+  language: string;
+  stdin?: string;
+  cpu_time_limit?: number;
+  memory_limit?: number;
+}): Promise<{ output: string; status: any; time?: string; memory?: number }> => {
+  try {
+    const response = await api.post("/code/run", data);
+    return response.data;
+  } catch (error) {
+    throw new Error(
+      error instanceof AxiosError && error.response?.data?.message
+        ? error.response.data.message
+        : "Ошибка при выполнении кода"
+    );
+  }
+};

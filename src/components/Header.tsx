@@ -5,12 +5,11 @@ import { FaGamepad, FaComments, FaTrophy, FaUser, FaSignOutAlt } from "react-ico
 
 const Header = () => {
     const { user, logout } = useAuth();
-    const { isInGame, gameSessionId, leaveGame } = useGame();
+    const { gameSessionId } = useGame();
     const navigate = useNavigate();
     const location = useLocation();
 
     const handleNavigation = (path: string) => {
-        if (path === '/game' && !gameSessionId) return; 
         navigate(path);
     };
 
@@ -19,6 +18,7 @@ const Header = () => {
         if (path === '/msg') return location.pathname === '/' || location.pathname.startsWith('/msg');
         return location.pathname === path;
     };
+
 
     return (
         <div className="w-full bg-[#111A1F] border-b border-gray-600">
@@ -76,14 +76,13 @@ const Header = () => {
 
                     {/* Game */}
                     <button
-                        onClick={() => gameSessionId && handleNavigation(`/game/${gameSessionId}`)}
-                        disabled={!gameSessionId}
+                        onClick={() => gameSessionId ? handleNavigation(`/game/${gameSessionId}`) : handleNavigation('/msg')}
                         className={`p-2 rounded-lg transition-colors ${
                             gameSessionId && isActive('/game')
-                                ? 'bg-green-600 text-white' 
+                                ? 'bg-green-600 text-white'
                                 : gameSessionId
                                 ? 'text-green-400 hover:text-white hover:bg-gray-700'
-                                : 'text-gray-500 cursor-not-allowed'
+                                : 'text-gray-400 hover:text-white hover:bg-gray-700'
                         }`}
                         title={gameSessionId ? "Игра" : "Нет активной игры"}
                     >
@@ -114,22 +113,6 @@ const Header = () => {
                 </div>
             </div>
 
-            {/* Game Session Bar - показываем только НЕ в игре */}
-            {isInGame && gameSessionId && !location.pathname.startsWith('/game') && (
-                <div className="bg-green-600 text-white px-4 py-2 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <FaGamepad size={16} />
-                        <span className="font-semibold">Активная игра</span>
-                        <span className="text-green-200">ID: {gameSessionId}</span>
-                    </div>
-                    <button
-                        onClick={leaveGame}
-                        className="text-white hover:text-red-200 transition-colors text-sm font-medium"
-                    >
-                        Покинуть игру
-                    </button>
-                </div>
-            )}
         </div>
     )
 }
