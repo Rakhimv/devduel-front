@@ -1,14 +1,39 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 
 const GameStatusBanner: React.FC = () => {
   const { isInGame, gameSessionId, gameDuration } = useGame();
+  const { socket } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [isValidSession, setIsValidSession] = useState(true);
 
-  // Don't show banner on game page
-  if (!isInGame || !gameSessionId || location.pathname.startsWith('/game')) {
+  // Validate session on mount
+  useEffect(() => {
+    if (gameSessionId && socket) {
+      const validateSession = () => {
+        socket.emit('validate_game_session', { sessionId: gameSessionId });
+      };
+
+      validateSession();
+
+      const handleValidation = (result: boolean) => {
+        setIsValidSession(result);
+      };
+
+      socket.on('session_validation_result', handleValidation);
+
+      return () => {
+        socket.off('session_validation_result', handleValidation);
+      };
+    } else {
+      setIsValidSession(false);
+    }
+  }, [gameSessionId, socket]);
+
+  if (!isInGame || !gameSessionId || !isValidSession || location.pathname.startsWith('/game')) {
     return null;
   }
 

@@ -20,7 +20,7 @@ const Game: React.FC = () => {
         const handleGameSessionUpdate = (session: GameSession) => {
             setGameSession(session);
             setLoading(false);
-            
+
             setIsInGame(true);
             setGameSessionId(session.id);
             setGameDuration(session.duration);
@@ -46,6 +46,7 @@ const Game: React.FC = () => {
             setIsInGame(false);
             setGameSessionId(null);
             setGameDuration(null);
+         
         };
 
         socket.on('game_session_update', handleGameSessionUpdate);
@@ -79,7 +80,7 @@ const Game: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="w-full h-screen bg-[#111A1F] flex items-center justify-center">
+            <div className="w-full h-screen-calc bg-[#111A1F] flex items-center justify-center">
                 <div className="text-center text-white">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
                     <div>Загрузка игры...</div>
@@ -90,7 +91,7 @@ const Game: React.FC = () => {
 
     if (error) {
         return (
-            <div className="w-full h-screen bg-[#111A1F] flex items-center justify-center">
+            <div className="w-full h-screen-calc bg-[#111A1F] flex items-center justify-center">
                 <div className="text-center text-white">
                     <div className="text-red-500 text-xl mb-4">{error}</div>
                     <button
@@ -106,7 +107,7 @@ const Game: React.FC = () => {
 
     if (!gameSession) {
         return (
-            <div className="w-full h-screen bg-[#111A1F] flex items-center justify-center">
+            <div className="w-full h-screen-calc bg-[#111A1F] flex items-center justify-center">
                 <div className="text-center text-white">
                     <div className="text-gray-400 text-xl mb-4">Игровая сессия не найдена</div>
                     <button
@@ -121,12 +122,17 @@ const Game: React.FC = () => {
     }
 
     return (
-        <div className="w-full h-screen bg-[#111A1F]">
+        <div className="w-full h-screen-calc bg-[#111A1F]">
             <GameInterface
                 gameSession={gameSession}
                 currentUserId={user?.id || 0}
                 onReady={handleReady}
                 onLeave={handleLeave}
+                onTaskSubmitted={() => {
+                    if (socket && sessionId) {
+                        socket.emit('join_game_session', { sessionId });
+                    }
+                }}
             />
         </div>
     );

@@ -16,3 +16,10 @@
     @apply bg-black text-white;
   }
 }
+
+@keyframes confetti-fall {
+  to {
+    transform: translateY(100vh) rotate(360deg);
+    opacity: 0;
+  }
+}

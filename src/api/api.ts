@@ -103,3 +103,67 @@ export const runCode = async (data: {
     );
   }
 };
+
+export const submitTaskSolution = async (data: {
+  gameId: string;
+  taskId: number;
+  source_code: string;
+  language: string;
+  isRunTest?: boolean;
+}): Promise<{ success: boolean; testResults: Array<{ input: string; expected: string; actual: string; passed: boolean }>; levelUp?: boolean; gameFinished?: boolean }> => {
+  try {
+    const response = await api.post("/game/submit", data);
+    return response.data;
+  } catch (error) {
+    throw new Error(
+      error instanceof AxiosError && error.response?.data?.message
+        ? error.response.data.message
+        : "Ошибка при отправке решения задачи"
+    );
+  }
+};
+
+export const getTaskByLevel = async (level: number): Promise<any> => {
+  try {
+    const response = await api.get(`/code/task/level/${level}`);
+    return response.data;
+  } catch (error) {
+    throw new Error(
+      error instanceof AxiosError && error.response?.data?.message
+        ? error.response.data.message
+        : "Ошибка при получении задачи"
+    );
+  }
+};
+
+export const getTaskTemplate = async (taskId: number, language: string): Promise<{ template: string; functionSignature: string }> => {
+  try {
+    const response = await api.get(`/game/task/${taskId}/template?language=${language}`);
+    return response.data;
+  } catch (error) {
+    throw new Error(
+      error instanceof AxiosError && error.response?.data?.message
+        ? error.response.data.message
+        : "Ошибка при получении шаблона задачи"
+    );
+  }
+};
+
+export const getGameProgress = async (gameId: string): Promise<{
+  currentLevel: number;
+  playerLevel: number;
+  opponentLevel: number;
+  currentTask: any;
+  solvedTasks: number[];
+}> => {
+  try {
+    const response = await api.get(`/game/progress/${gameId}`);
+    return response.data;
+  } catch (error) {
+    throw new Error(
+      error instanceof AxiosError && error.response?.data?.message
+        ? error.response.data.message
+        : "Ошибка при получении прогресса игры"
+    );
+  }
+};

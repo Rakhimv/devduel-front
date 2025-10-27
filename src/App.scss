@@ -96,3 +96,7 @@ body {
     font-family: monospace;
     animation: hacker 0.2s infinite;
 }
+
+.h-screen-calc {
+    height: calc(100vh - 65px);
+}
