@@ -2,18 +2,10 @@ export interface GameInvite {
   id: string;
   fromUserId: number;
   fromUsername: string;
+  fromAvatar?: string | null;
   toUserId: number;
   toUsername: string;
-  timestamp: string;
-  status: 'pending' | 'accepted' | 'declined' | 'expired' | 'abandoned';
-}
-
-export interface GameInvite {
-  id: string;
-  fromUserId: number;
-  fromUsername: string;
-  toUserId: number;
-  toUsername: string;
+  toAvatar?: string | null;
   timestamp: string;
   status: 'pending' | 'accepted' | 'declined' | 'expired' | 'abandoned';
 }

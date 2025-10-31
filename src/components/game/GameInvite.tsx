@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { GameInvite as GameInviteType } from '../../types/game';
+import AvatarWithStatus from '../chat/AvatarWithStatus';
 
 interface GameInviteProps {
   invite: GameInviteType;
@@ -56,12 +57,14 @@ const GameInvite: React.FC<GameInviteProps> = ({ invite, onAccept, onDecline, is
     return (
       <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-4 rounded-lg border border-blue-400 shadow-lg max-w-md mx-auto">
         <div className="text-center">
-          <div className="flex items-center justify-center mb-2">
-            <span className="text-2xl mr-2">🎮</span>
-            <h3 className="text-lg font-bold text-white">
-              Приглашение отправлено
-            </h3>
+          <div className="flex items-center justify-center mb-3 gap-3">
+            <AvatarWithStatus avatar={invite.fromAvatar} name={invite.fromUsername} />
+            <span className="text-2xl">🎮</span>
+            <AvatarWithStatus avatar={invite.toAvatar} name={invite.toUsername} />
           </div>
+          <h3 className="text-lg font-bold text-white mb-2">
+            Приглашение отправлено
+          </h3>
           <p className="text-white/90 text-sm">
             Ожидаем ответа от <span className="font-semibold">{invite.toUsername}</span>
           </p>
@@ -97,12 +100,14 @@ const GameInvite: React.FC<GameInviteProps> = ({ invite, onAccept, onDecline, is
     return (
       <div className="bg-gradient-to-r from-gray-500 to-gray-600 p-4 rounded-lg border border-gray-400 shadow-lg max-w-md mx-auto">
         <div className="text-center">
-          <div className="flex items-center justify-center mb-2">
-            <span className="text-2xl mr-2">🎮</span>
-            <h3 className="text-lg font-bold text-white">
-              Приглашение в игру
-            </h3>
+          <div className="flex items-center justify-center mb-3 gap-3">
+            <AvatarWithStatus avatar={invite.fromAvatar} name={invite.fromUsername} />
+            <span className="text-2xl">🎮</span>
+            <AvatarWithStatus avatar={invite.toAvatar} name={invite.toUsername} />
           </div>
+          <h3 className="text-lg font-bold text-white mb-2">
+            Приглашение в игру
+          </h3>
           <p className="text-white/90 text-sm mb-4">
             <span className="font-semibold">{invite.fromUsername}</span> приглашал вас в игру
           </p>
@@ -118,12 +123,14 @@ const GameInvite: React.FC<GameInviteProps> = ({ invite, onAccept, onDecline, is
   return (
     <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-4 rounded-lg border border-purple-400 shadow-lg max-w-md mx-auto">
       <div className="text-center">
-        <div className="flex items-center justify-center mb-2">
-          <span className="text-2xl mr-2">🎮</span>
-          <h3 className="text-lg font-bold text-white">
-            Приглашение в игру
-          </h3>
+        <div className="flex items-center justify-center mb-3 gap-3">
+          <AvatarWithStatus avatar={invite.fromAvatar} name={invite.fromUsername} />
+          <span className="text-2xl">🎮</span>
+          <AvatarWithStatus avatar={invite.toAvatar} name={invite.toUsername} />
         </div>
+        <h3 className="text-lg font-bold text-white mb-2">
+          Приглашение в игру
+        </h3>
         <p className="text-white/90 text-sm mb-4">
           <span className="font-semibold">{invite.fromUsername}</span> приглашает вас в игру!
         </p>

@@ -66,9 +66,9 @@ const Profile: React.FC = () => {
 
               <div className="bg-[#5a6470] rounded-lg p-4">
                 <h3 className="font-semibold text-lg mb-2">Статистика</h3>
-                <p className="text-gray-300">Игр сыграно: 0</p>
-                <p className="text-gray-300">Побед: 0</p>
-                <p className="text-gray-300">Поражений: 0</p>
+                <p className="text-gray-300">Игр сыграно: {user?.games_count || 0}</p>
+                <p className="text-gray-300">Побед: {user?.wins_count || 0}</p>
+                <p className="text-gray-300">Поражений: {(user?.games_count || 0) - (user?.wins_count || 0)}</p>
               </div>
             </div>
 

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import type { GameSession,  Task } from '../../types/game';
+import type { GameSession, Task } from '../../types/game';
 import CodeEditor from '../IDE/CodeEditor';
 import GameCanvas from './GameCanvas';
 import { getGameProgress } from '../../api/api';
 import { Timer } from './Timer';
+import { useAuth } from '../../hooks/useAuth';
 
 interface GameInterfaceProps {
   gameSession: GameSession;
@@ -29,6 +30,7 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
     currentTask: Task;
     solvedTasks: number[];
   } | null>(null);
+  const [showFinishedModal, setShowFinishedModal] = useState(false);
 
   const isPlayer1 = gameSession.player1.id === currentUserId;
   const currentPlayer = isPlayer1 ? gameSession.player1 : gameSession.player2;
@@ -38,13 +40,53 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
   const player2AvatarUrl = gameSession.player2.avatar ? `${backendUrl}${gameSession.player2.avatar}` : undefined;
 
   const [lastGameSessionId, setLastGameSessionId] = React.useState<string | null>(null);
-  
+  const { socket } = useAuth();
+
   useEffect(() => {
     if (gameSession.status === 'in_progress' && gameSession.id !== lastGameSessionId) {
       setLastGameSessionId(gameSession.id);
       loadGameProgress();
     }
   }, [gameSession.status, gameSession.id]);
+
+  // Listen for game progress updates from socket
+  useEffect(() => {
+    if (!socket || gameSession.status !== 'in_progress') return;
+
+    const handleGameProgressUpdate = (progress: { playerLevel: number; opponentLevel: number }) => {
+      if (gameProgress) {
+        // Update progress when received from socket
+        setGameProgress(prev => prev ? {
+          ...prev,
+          playerLevel: progress.playerLevel,
+          opponentLevel: progress.opponentLevel
+        } : null);
+      } else {
+        // If no progress yet, reload it
+        loadGameProgress();
+      }
+    };
+
+    socket.on('game_progress_update', handleGameProgressUpdate);
+
+    return () => {
+      socket.off('game_progress_update', handleGameProgressUpdate);
+    };
+  }, [socket, gameSession.status, gameProgress]);
+
+  // Handle game finish - wait for animation before showing modal
+  useEffect(() => {
+    if (gameSession.status === 'finished') {
+      // Wait for GameCanvas animation to complete (1 second) + small buffer
+      const timer = setTimeout(() => {
+        setShowFinishedModal(true);
+      }, 1100);
+
+      return () => clearTimeout(timer);
+    } else {
+      setShowFinishedModal(false);
+    }
+  }, [gameSession.status]);
 
   const loadGameProgress = async () => {
     try {
@@ -78,7 +120,7 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
 
   const handleTaskSubmitted = (_success: boolean, _testResults: any[], gameFinished?: boolean) => {
     onTaskSubmitted?.();
-    
+
     if (gameFinished) {
       setTimeout(() => {
         loadGameProgress();
@@ -246,8 +288,8 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
                 <GameCanvas
                   width={800}
                   height={600}
-                  player1Level={gameProgress?.playerLevel || 1}
-                  player2Level={gameProgress?.opponentLevel || 1}
+                  player1Level={isPlayer1 ? (gameProgress?.playerLevel || 1) : (gameProgress?.opponentLevel || 1)}
+                  player2Level={isPlayer1 ? (gameProgress?.opponentLevel || 1) : (gameProgress?.playerLevel || 1)}
                   player1Username={gameSession.player1.username}
                   player2Username={gameSession.player2.username}
                   player1Avatar={player1AvatarUrl}
@@ -258,7 +300,8 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
           </div>
         )}
 
-        {gameSession.status === 'finished' && (
+        {/* Show finished modal after animation delay */}
+        {gameSession.status === 'finished' && showFinishedModal && (
           <div className="text-center relative">
             <div className="fixed inset-0 pointer-events-none z-50">
               {Array.from({ length: 50 }).map((_, i) => (
@@ -279,51 +322,49 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
             <div className="relative z-10">
               <h3 className="text-4xl font-bold mb-6 animate-pulse">🎉 Игра завершена! 🎉</h3>
 
-            {gameSession.gameResult === 'timeout' && (
-              <div className="mb-4">
-                <p className="text-lg mb-2">⏰ Время истекло</p>
-                <p className="text-gray-400">Игра длилась: {gameSession.duration / 60000} минут</p>
-              </div>
-            )}
-
-            {gameSession.gameResult === 'player_left' && (
-              <div className="mb-4">
-                <p className="text-lg mb-2">🚪 Противник покинул игру</p>
-                <p className="text-gray-400">Игра длилась: {gameSession.duration / 60000} минут</p>
-              </div>
-            )}
-
-            {gameSession.winner && (
-              <div className="mb-6">
-                <div className="flex items-center justify-center gap-4 mb-4">
-                  {gameSession.winner.id === currentUserId ? (
-                    <>
-                      <div className="text-6xl">🏆</div>
-                      <div>
-                        <p className="text-3xl font-bold text-yellow-400 mb-2">Вы победили!</p>
-                        <p className="text-xl text-gray-300">Поздравляем с победой!</p>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="text-6xl">👏</div>
-                      <div>
-                        <p className="text-3xl font-bold text-gray-300 mb-2">Победитель:</p>
-                        <p className="text-2xl text-gray-400">{gameSession.winner.username}</p>
-                      </div>
-                    </>
-                  )}
+              {gameSession.gameResult === 'timeout' && (
+                <div className="mb-4">
+                  <p className="text-lg mb-2">⏰ Время истекло</p>
                 </div>
-                <p className="text-gray-400 mb-4">Игра длилась: {(gameSession.duration / 60000).toFixed(1)} минут</p>
-              </div>
-            )}
+              )}
 
-            <button
-              onClick={onLeave}
-              className="bg-blue-600 hover:bg-blue-700 px-8 py-3 rounded-lg text-lg font-semibold transform hover:scale-105 transition-transform"
-            >
-              Вернуться в чат
-            </button>
+              {gameSession.gameResult === 'player_left' && (
+                <div className="mb-4">
+                  <p className="text-lg mb-2">🚪 Противник покинул игру</p>
+                </div>
+              )}
+
+              {gameSession.winner && (
+                <div className="mb-6">
+                  <div className="flex items-center justify-center gap-4 mb-4">
+                    {gameSession.winner.id === currentUserId ? (
+                      <>
+                        <div className="text-6xl">🏆</div>
+                        <div>
+                          <p className="text-3xl font-bold text-yellow-400 mb-2">Вы победили!</p>
+                          <p className="text-xl text-gray-300">Поздравляем с победой!</p>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="text-6xl">😔</div>
+                        <div>
+                          <p className="text-3xl font-bold text-red-400 mb-2">Вы проиграли</p>
+                          <p className="text-xl text-gray-300">Победитель: <span className="text-yellow-400">{gameSession.winner.username}</span></p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+            
+                </div>
+              )}
+
+              <button
+                onClick={onLeave}
+                className="bg-blue-600 hover:bg-blue-700 px-8 py-3 rounded-lg text-lg font-semibold transform hover:scale-105 transition-transform"
+              >
+                Вернуться в чат
+              </button>
             </div>
           </div>
         )}

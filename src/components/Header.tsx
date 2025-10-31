@@ -21,18 +21,15 @@ const Header = () => {
 
 
     return (
-        <div className="w-full bg-[#111A1F] border-b border-gray-600">
-            {/* Main Header */}
-            <div className="flex items-center justify-between h-16 px-4">
-                {/* Logo and User Info */}
+        <div className="w-full h-[80px] flex items-center justify-between bg-primary-bg border-b border-primary-bdr">
+
+            <div className="flex items-center w-full justify-between h-16 px-4">
                 <div className="flex items-center gap-4">
-                    {/* Logo */}
                     <div className="flex items-center gap-2">
                         <img src="/logo.svg" alt="DevDuel" className="w-8 h-8" />
                         <span className="text-white font-bold text-xl">DevDuel</span>
                     </div>
 
-                    {/* User Avatar and Info */}
                     <div className="flex items-center gap-3">
                         <img 
                             className="w-10 h-10 rounded-full border-2 border-gray-600" 
@@ -46,9 +43,7 @@ const Header = () => {
                     </div>
                 </div>
 
-                {/* Navigation Icons */}
                 <div className="flex items-center gap-2">
-                    {/* Chat */}
                     <button
                         onClick={() => handleNavigation('/msg')}
                         className={`p-2 rounded-lg transition-colors ${
@@ -61,7 +56,6 @@ const Header = () => {
                         <FaComments size={20} />
                     </button>
 
-                    {/* Rating */}
                     <button
                         onClick={() => handleNavigation('/rating')}
                         className={`p-2 rounded-lg transition-colors ${
@@ -74,7 +68,6 @@ const Header = () => {
                         <FaTrophy size={20} />
                     </button>
 
-                    {/* Game */}
                     <button
                         onClick={() => gameSessionId ? handleNavigation(`/game/${gameSessionId}`) : handleNavigation('/msg')}
                         className={`p-2 rounded-lg transition-colors ${
@@ -89,7 +82,6 @@ const Header = () => {
                         <FaGamepad size={20} />
                     </button>
 
-                    {/* Profile */}
                     <button
                         onClick={() => handleNavigation('/profile')}
                         className={`p-2 rounded-lg transition-colors ${
@@ -102,7 +94,6 @@ const Header = () => {
                         <FaUser size={20} />
                     </button>
 
-                    {/* Logout */}
                     <button
                         onClick={logout}
                         className="p-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-900/20 transition-colors"

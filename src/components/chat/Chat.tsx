@@ -6,6 +6,10 @@ import { useAuth } from "../../hooks/useAuth";
 import { useGame } from "../../context/GameContext";
 import { formatLastSeen } from "../../utils/lastSeen";
 import GameInviteComponent from "../game/GameInvite";
+import Modal from "../ui/Modal";
+import AvatarWithStatus from "./AvatarWithStatus";
+import ChatInput from "../ui/ChatInput";
+import { FaGamepad } from "react-icons/fa";
 
 const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => void }> = ({ chatId, setChatId }) => {
     const { user, socket } = useAuth();
@@ -19,8 +23,22 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
     const [isUserOnline, setIsUserOnline] = useState(false);
     const [gameEndInfo, setGameEndInfo] = useState<{[inviteId: string]: {reason: string, duration: number}}>({});
     const [isInviteSending, setIsInviteSending] = useState(false);
+    const [showUserSelectModal, setShowUserSelectModal] = useState(false);
+    const [availableUsers, setAvailableUsers] = useState<any[]>([]);
+    const [onlineUsers, setOnlineUsers] = useState<Set<number>>(new Set());
+    const [userSearchQuery, setUserSearchQuery] = useState("");
+    const [messageContextMenu, setMessageContextMenu] = useState<{ x: number; y: number; messageId: number } | null>(null);
+    const [showProfileModal, setShowProfileModal] = useState(false);
+    const [profileUser, setProfileUser] = useState<any>(null);
+    const [showParticipantsModal, setShowParticipantsModal] = useState(false);
+    const [participants, setParticipants] = useState<any[]>([]);
+    const [participantsLoading, setParticipantsLoading] = useState(false);
+    const [participantsOffset, setParticipantsOffset] = useState(0);
+    const [participantsTotal, setParticipantsTotal] = useState(0);
+    const participantsLimit = 10;
     const messageEndRef = useRef<HTMLDivElement>(null);
     const currentChatIdRef = useRef<string | null>(null);
+    const contextMenuRef = useRef<HTMLDivElement>(null);
 
 
     const setNullChat = () => {
@@ -69,6 +87,16 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
         };
 
         const handleUserStatus = ({ userId, isOnline }: any) => {
+            setOnlineUsers((prev) => {
+                const newSet = new Set(prev);
+                if (isOnline) {
+                    newSet.add(userId);
+                } else {
+                    newSet.delete(userId);
+                }
+                return newSet;
+            });
+            
             if (chatInfo?.chat_type === "direct" && chatInfo?.user?.id === userId) {
                 setIsUserOnline(isOnline);
                 if (!isOnline) {
@@ -81,6 +109,10 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                     }));
                 }
             }
+        };
+
+        const handleUsersList = (data: any) => {
+            setAvailableUsers(data.users || []);
         };
 
         const handleGameInviteAccepted = (session: any) => {
@@ -174,16 +206,35 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
             );
         };
 
+        const handleMessageDeleted = ({ messageId, chatId: deletedChatId }: any) => {
+            if (deletedChatId === currentChatIdRef.current) {
+                setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
+            }
+        };
+
+        const handleGeneralChatUpdate = ({ participantsCount, onlineCount }: any) => {
+            if (currentChatIdRef.current === 'general') {
+                setChatInfo((prev: any) => ({
+                    ...prev,
+                    participantsCount,
+                    onlineCount
+                }));
+            }
+        };
+
         socket.on("new_message", handleNewMessage);
         socket.on("messages_read_by_other", handleMessagesReadByOther);
         socket.on("chat_history_cleared", handleChatHistoryCleared);
         socket.on("user_status", handleUserStatus);
+        socket.on("users_list", handleUsersList);
         socket.on("game_invite_accepted", handleGameInviteAccepted);
         socket.on("game_invite_error", handleGameInviteError);
         socket.on("game_end_notification", handleGameEndNotification);
         socket.on("game_invite_expired", handleGameInviteExpired);
         socket.on("game_invite_declined", handleGameInviteDeclined);
         socket.on("game_invite_abandoned", handleGameInviteAbandoned);
+        socket.on("message_deleted", handleMessageDeleted);
+        socket.on("general_chat_update", handleGeneralChatUpdate);
 
         socket.emit("join_chat", chatId);
 
@@ -192,12 +243,15 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
             socket.off("messages_read_by_other", handleMessagesReadByOther);
             socket.off("chat_history_cleared", handleChatHistoryCleared);
             socket.off("user_status", handleUserStatus);
+            socket.off("users_list", handleUsersList);
             socket.off("game_invite_accepted", handleGameInviteAccepted);
             socket.off("game_invite_error", handleGameInviteError);
             socket.off("game_end_notification", handleGameEndNotification);
             socket.off("game_invite_expired", handleGameInviteExpired);
             socket.off("game_invite_declined", handleGameInviteDeclined);
             socket.off("game_invite_abandoned", handleGameInviteAbandoned);
+            socket.off("message_deleted", handleMessageDeleted);
+            socket.off("general_chat_update", handleGeneralChatUpdate);
         };
     }, [chatId, socket, user, chatInfo]);
 
@@ -297,11 +351,20 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
 
 
 
-    const sendGameInvite = async () => {
+    const sendGameInvite = async (selectedUserId?: number) => {
         if (!socket || !chatInfo) return;
 
-        const targetUserId = chatInfo.targetUser?.id || chatInfo.user?.id;
-        if (!targetUserId) return;
+        const targetUserId = selectedUserId || chatInfo.targetUser?.id || chatInfo.user?.id;
+        if (!targetUserId) {
+            // For group chats, show user selection modal
+            if (chatInfo?.chat_type === 'group') {
+                setShowUserSelectModal(true);
+                fetchOnlineUsers();
+            } else {
+                console.error("Cannot send invite: no target user specified");
+            }
+            return;
+        }
 
         if (isInviteSending) return;
         setIsInviteSending(true);
@@ -341,8 +404,20 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                 chatId: finalChatId,
                 toUserId: targetUserId
             });
+            
+            setShowUserSelectModal(false);
         } catch (err) {
             console.error("Error sending game invite:", err);
+        }
+    };
+
+    const fetchOnlineUsers = async () => {
+        try {
+            if (socket) {
+                socket.emit('get_users_list', { offset: 0, limit: 100 });
+            }
+        } catch (err) {
+            console.error("Error fetching users:", err);
         }
     };
 
@@ -374,9 +449,95 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
 
     const firstUnreadIndex = messages.findIndex((msg) => !msg.is_read && msg.user_id !== user?.id);
 
+    const handleMessageRightClick = (e: React.MouseEvent, messageId: number) => {
+        e.preventDefault();
+        setMessageContextMenu({ x: e.clientX, y: e.clientY, messageId });
+    };
+
+    const handleCopyMessage = async (messageId: number) => {
+        const message = messages.find(m => m.id === messageId);
+        if (message && message.text) {
+            try {
+                await navigator.clipboard.writeText(message.text);
+                setMessageContextMenu(null);
+            } catch (err) {
+                console.error('Failed to copy message:', err);
+            }
+        }
+    };
+
+    const handleDeleteMessage = async (messageId: number) => {
+        try {
+            await api.delete(`/chats/messages/${messageId}`);
+            setMessageContextMenu(null);
+        } catch (err) {
+            console.error('Failed to delete message:', err);
+        }
+    };
+
+    const handleChatHeaderClick = async () => {
+        if (chatId === 'general') {
+            // Open participants modal for general chat
+            setShowParticipantsModal(true);
+            setParticipantsOffset(0);
+            setParticipants([]);
+            loadParticipants(0);
+        } else if (chatInfo?.chat_type === 'direct' && chatInfo?.user?.id) {
+            try {
+                const res = await api.get(`/users/${chatInfo.user.id}`);
+                setProfileUser(res.data);
+                setShowProfileModal(true);
+            } catch (err) {
+                console.error('Failed to fetch user profile:', err);
+            }
+        }
+    };
+
+    const loadParticipants = async (offset: number) => {
+        setParticipantsLoading(true);
+        try {
+            const res = await api.get(`/users/list?offset=${offset}&limit=${participantsLimit}`);
+            if (offset === 0) {
+                setParticipants(res.data.users || []);
+            } else {
+                setParticipants((prev) => [...prev, ...(res.data.users || [])]);
+            }
+            setParticipantsTotal(res.data.total || 0);
+            setParticipantsOffset(offset);
+        } catch (err) {
+            console.error('Failed to load participants:', err);
+        } finally {
+            setParticipantsLoading(false);
+        }
+    };
+
+    const handleParticipantsScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const target = e.currentTarget;
+        const isNearBottom = target.scrollHeight - target.scrollTop - target.clientHeight < 100;
+        
+        if (isNearBottom && !participantsLoading && participants.length < participantsTotal) {
+            const nextOffset = participantsOffset + participantsLimit;
+            if (nextOffset < participantsTotal) {
+                loadParticipants(nextOffset);
+            }
+        }
+    };
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (contextMenuRef.current && !contextMenuRef.current.contains(event.target as Node)) {
+                setMessageContextMenu(null);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
     if (!chatId) {
         return (
-            <div className="w-full h-full flex items-center justify-center text-white">
+            <div className="w-full h-full bg-secondary-bg flex flex-col gap-[20px] items-center justify-center text-white relative">
+                <img src="/logo.svg" className="opacity-[0.02] absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2" />
                 Выберите чат
             </div>
         );
@@ -395,13 +556,29 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
 
 
     return (
-        <div className="w-full h-full bg-[#111A1F] text-white flex flex-col">
-            <div className="bg-[#485761] p-4 border-b border-gray-600">
-
+        <div className="w-full h-full bg-secondary-bg text-white flex flex-col">
+            <div 
+                className={`bg-primary-bg p-4 border-b border-primary-bdr ${(chatInfo?.chat_type === 'direct' || chatId === 'general') ? 'cursor-pointer hover:bg-[#2a3441]' : ''}`}
+                onClick={(chatInfo?.chat_type === 'direct' || chatId === 'general') ? handleChatHeaderClick : undefined}
+            >
                 <div>
-                    <h2 className="text-lg font-semibold">{chatInfo.display_name}</h2>
+                    <div className="flex items-center gap-2">
+                        <h2 className="text-lg font-semibold">{chatInfo.display_name}</h2>
+                        {chatInfo?.chat_type === "direct" && chatInfo?.userStats && (
+                            <span className="text-xs text-gray-400">
+                                ({chatInfo.userStats.games_count} игр, {chatInfo.userStats.wins_count} побед)
+                            </span>
+                        )}
+                    </div>
                     {chatInfo.chat_type === "direct" && (
-                        <p className="text-sm text-gray-300">{lastSeenText}</p>
+                        <p className={`text-sm ${chatInfo.user.is_online ? "text-primary" : "text-white/50"}`}>
+                            {lastSeenText}
+                        </p>
+                    )}
+                    {chatId === "general" && (
+                        <p className="text-sm text-white/50">
+                            {chatInfo?.participantsCount || 0} участников • {chatInfo?.onlineCount || 0} онлайн
+                        </p>
                     )}
                 </div>
 
@@ -430,8 +607,10 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                                         id: msg.game_invite_data.invite_id,
                                         fromUserId: msg.game_invite_data.from_user_id,
                                         fromUsername: msg.game_invite_data.from_username,
+                                        fromAvatar: msg.game_invite_data.from_avatar,
                                         toUserId: msg.game_invite_data.to_user_id,
                                         toUsername: msg.game_invite_data.to_username,
+                                        toAvatar: msg.game_invite_data.to_avatar,
                                         timestamp: msg.timestamp,
                                         status: msg.game_invite_data.status
                                     }}
@@ -464,7 +643,10 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                                 />
                             </div>
                         ) : (
-                            <div className="mb-2 flex items-center gap-2">
+                            <div 
+                                className="mb-2 flex items-center gap-2 relative"
+                                onContextMenu={(e) => handleMessageRightClick(e, msg.id)}
+                            >
                                 <span>[{new Date(msg.timestamp).toLocaleTimeString()}] &lt;{msg.username}&gt; {msg.text}</span>
                                 {msg.user_id === user?.id && (
                                     <span className={`text-xs ${msg.is_read ? 'text-blue-400' : 'text-gray-400'}`}>
@@ -484,36 +666,194 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                         e.preventDefault();
                         sendMessage();
                     }}
-                    className="w-full py-[5px] bg-[#485761]"
+                    className="w-full bg-[#485761] p-4"
                 >
-                    <div className="w-full flex gap-[5px]">
-                        <input
-                            className="p-[10px] outline-none bg-[#111A1F] w-full rounded-[4px]"
-                            type="text"
-                            placeholder="Сообщение..."
-                            value={text}
-                            onChange={(e) => setText(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                    e.preventDefault();
-                                    sendMessage();
-                                }
-                            }}
-                        />
+                    <div className="w-full flex items-end gap-2">
+                        <div className="flex-1">
+                            <ChatInput
+                                value={text}
+                                onChange={setText}
+                                onSend={sendMessage}
+                                placeholder="Напишите сообщение..."
+                                disabled={false}
+                            />
+                        </div>
                         <button
-                            onClick={sendGameInvite}
+                            type="button"
+                            onClick={() => sendGameInvite()}
                             disabled={isInGame || isInviteSending}
-                            className={`p-[20px] whitespace-nowrap rounded-[4px] ${
+                            className={`p-3 rounded-lg transition-all duration-200 ${
                                 isInGame || isInviteSending
                                     ? 'cursor-not-allowed bg-gray-500 text-gray-300' 
-                                    : 'cursor-pointer bg-amber-500 hover:bg-amber-600'
-                            }`}>
-                            {isInGame ? 'В ИГРЕ' : isInviteSending ? 'ОТПРАВКА...' : 'ПРИГЛАСИТЬ В ИГРУ'}
+                                    : 'cursor-pointer bg-amber-500 hover:bg-amber-600 hover:scale-110 active:scale-95 shadow-lg hover:shadow-amber-500/50'
+                            }`}
+                            title={isInGame ? 'Вы уже в игре' : 'Пригласить в игру'}
+                        >
+                            <FaGamepad size={24} />
                         </button>
                     </div>
-                    <p className="opacity-50 text-sm px-2">freenode (IRC)</p>
                 </form>
             )}
+            
+            <Modal
+                isOpen={showUserSelectModal}
+                onClose={() => {
+                    setShowUserSelectModal(false);
+                    setUserSearchQuery("");
+                }}
+                title="Выберите пользователя"
+            >
+                <div className="w-full">
+                    <input
+                        type="text"
+                        value={userSearchQuery}
+                        onChange={(e) => setUserSearchQuery(e.target.value)}
+                        placeholder="Поиск по имени или логину..."
+                        className="w-full p-2 mb-4 bg-[#111A1F] text-white rounded outline-none border border-gray-600 focus:border-amber-500"
+                    />
+                    <div className="max-h-96 overflow-y-auto">
+                        {availableUsers
+                            .filter(u => u.id !== user?.id)
+                            .filter(u => {
+                                const query = userSearchQuery.toLowerCase();
+                                if (!query) return true;
+                                return (u.name?.toLowerCase().includes(query) || 
+                                        u.login?.toLowerCase().includes(query));
+                            })
+                            .map((userItem) => (
+                                <button
+                                    key={userItem.id}
+                                    onClick={() => sendGameInvite(userItem.id)}
+                                    className="w-full p-3 flex items-center gap-3 hover:bg-[#111A1F] rounded transition-colors text-left"
+                                >
+                                    <AvatarWithStatus
+                                        avatar={userItem.avatar}
+                                        name={userItem.name || userItem.login}
+                                        isOnline={onlineUsers.has(userItem.id)}
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                        <div className="font-semibold truncate text-white">{userItem.name}</div>
+                                        <div className="text-sm text-gray-400 truncate">@{userItem.login}</div>
+                                    </div>
+                                </button>
+                            ))}
+                        {availableUsers
+                            .filter(u => u.id !== user?.id)
+                            .filter(u => {
+                                const query = userSearchQuery.toLowerCase();
+                                if (!query) return true;
+                                return (u.name?.toLowerCase().includes(query) || 
+                                        u.login?.toLowerCase().includes(query));
+                            })
+                            .length === 0 && (
+                            <div className="text-center text-gray-400 py-8">
+                                {userSearchQuery ? 'Пользователи не найдены' : 'Нет доступных пользователей'}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </Modal>
+
+            {messageContextMenu && (
+                <div
+                    ref={contextMenuRef}
+                    style={{
+                        position: 'fixed',
+                        left: messageContextMenu.x,
+                        top: messageContextMenu.y,
+                        zIndex: 1000,
+                    }}
+                    className="bg-secondary-bg border border-primary-bdr rounded shadow-lg"
+                >
+                    <button
+                        onClick={() => handleCopyMessage(messageContextMenu.messageId)}
+                        className="block w-full px-4 py-2 text-left hover:bg-primary-bg text-white text-sm"
+                    >
+                        Копировать
+                    </button>
+                    {messages.find(m => m.id === messageContextMenu.messageId)?.user_id === user?.id && (
+                        <button
+                            onClick={() => handleDeleteMessage(messageContextMenu.messageId)}
+                            className="block w-full px-4 py-2 text-left hover:bg-red-600 text-white text-sm"
+                        >
+                            Удалить
+                        </button>
+                    )}
+                </div>
+            )}
+
+            <Modal
+                isOpen={showProfileModal}
+                onClose={() => {
+                    setShowProfileModal(false);
+                    setProfileUser(null);
+                }}
+                title={profileUser ? `${profileUser.name} (@${profileUser.login})` : "Профиль"}
+            >
+                {profileUser && (
+                    <div className="text-white">
+                        <div className="flex items-center gap-4 mb-4">
+                            <img 
+                                src={`${import.meta.env.VITE_BACKEND_URL}${profileUser.avatar || "/default.png"}`}
+                                alt={profileUser.name}
+                                className="w-16 h-16 rounded-full border-2 border-gray-600"
+                            />
+                            <div>
+                                <h3 className="text-xl font-bold">{profileUser.name}</h3>
+                                <p className="text-gray-400">@{profileUser.login}</p>
+                            </div>
+                        </div>
+                        <div className="bg-[#5a6470] rounded-lg p-4">
+                            <h4 className="font-semibold text-lg mb-2">Статистика</h4>
+                            <p className="text-gray-300">Игр сыграно: {profileUser.games_count || 0}</p>
+                            <p className="text-gray-300">Побед: {profileUser.wins_count || 0}</p>
+                            <p className="text-gray-300">Поражений: {(profileUser.games_count || 0) - (profileUser.wins_count || 0)}</p>
+                        </div>
+                    </div>
+                )}
+            </Modal>
+
+            <Modal
+                isOpen={showParticipantsModal}
+                onClose={() => {
+                    setShowParticipantsModal(false);
+                    setParticipants([]);
+                    setParticipantsOffset(0);
+                }}
+                title={`Участники General (${participantsTotal})`}
+            >
+                <div 
+                    className="max-h-96 overflow-y-auto"
+                    onScroll={handleParticipantsScroll}
+                >
+                    {participants.map((participant) => (
+                        <div
+                            key={participant.id}
+                            className="flex items-center gap-3 p-3 hover:bg-[#111A1F] rounded transition-colors"
+                        >
+                            <AvatarWithStatus
+                                avatar={participant.avatar}
+                                name={participant.name || participant.login}
+                                isOnline={onlineUsers.has(participant.id)}
+                            />
+                            <div className="flex-1 min-w-0">
+                                <div className="font-semibold truncate text-white">{participant.name}</div>
+                                <div className="text-sm text-gray-400 truncate">@{participant.login}</div>
+                            </div>
+                        </div>
+                    ))}
+                    {participantsLoading && (
+                        <div className="text-center py-4 text-gray-400">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-400 mx-auto"></div>
+                        </div>
+                    )}
+                    {!participantsLoading && participants.length === 0 && (
+                        <div className="text-center py-8 text-gray-400">
+                            Нет участников
+                        </div>
+                    )}
+                </div>
+            </Modal>
         </div>
     );
 };

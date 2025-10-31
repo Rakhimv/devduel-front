@@ -7,7 +7,9 @@ export interface User {
     provider: string;
     role: string;
     password: string;
-    online?: boolean
+    online?: boolean;
+    games_count?: number;
+    wins_count?: number;
 }
 
 

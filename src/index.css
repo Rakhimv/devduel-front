@@ -8,7 +8,11 @@
   --color-orangeDD: #EBC88D;
   --color-pinkDD: #DA70D6;
   --color-redDD: #f46161;
-  --color-greyDD: #232323
+  --color-greyDD: #232323;
+  --color-primary-bdr: #1c1c1c;
+  --color-primary-bg: #0A0A0A;
+  --color-secondary-bg: #161616;
+  --color-tertiary-bg: #242424;
 }
 
 @layer base {

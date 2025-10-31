@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import type { ChatInList } from "../../types/chat";
 import { api } from "../../api/api";
 import { useAuth } from "../../hooks/useAuth";
+import AvatarWithStatus from "./AvatarWithStatus";
 
 type ChatListProps = {
   setChatId: Dispatch<SetStateAction<string | null>>;
@@ -61,7 +62,9 @@ const ChatList: React.FC<ChatListProps> = ({ setChatId }) => {
     };
 
     const handleChatDeleted = ({ chatId }: any) => {
-      if (location.pathname.includes(chatId)) {
+      const deletedChat = chats.find(chat => chat.id === chatId);
+      const routeId = deletedChat?.chat_type === "direct" && deletedChat?.username ? deletedChat.username : chatId;
+      if (location.pathname.includes(routeId)) {
         setChatId(null);
         navigate('/msg');
       }
@@ -80,7 +83,7 @@ const ChatList: React.FC<ChatListProps> = ({ setChatId }) => {
 
     const handleChatCreated = ({ chatId }: any) => {
       fetchChats();
-      
+
       if (chatId && !chats.some(chat => chat.id === chatId)) {
         navigate(`/msg/${chatId}`);
         setChatId(chatId);
@@ -147,7 +150,9 @@ const ChatList: React.FC<ChatListProps> = ({ setChatId }) => {
       if (res.data?.success) {
         console.log("Success deleted")
 
-        if (currentChatId === chatId) {
+        const deletedChat = chats.find(chat => chat.id === chatId);
+        const routeId = deletedChat?.chat_type === "direct" && deletedChat?.username ? deletedChat.username : chatId;
+        if (currentChatId === routeId) {
           setChatId(null);
         }
 
@@ -219,40 +224,32 @@ const ChatList: React.FC<ChatListProps> = ({ setChatId }) => {
 
   return (
     <>
-      <div className="h-full w-[300px] bg-[#485761] p-[5px] text-white">
-        <input
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
-          className="p-[10px] outline-none bg-[#111A1F] w-full rounded-[4px]"
-          type="text"
-          placeholder="Поиск..."
-        />
+      <div className="h-full w-[300px] bg-primary-bg border-r border-primary-bdr  text-white">
+        <div className="w-full p-[10px]">
+          <input
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            className="p-[10px] outline-none bg-secondary-bg w-full"
+            type="text"
+            placeholder="Поиск..."
+          />
+        </div>
+
+
         <div className="flex flex-col gap-[10px] mt-[5px] relative">
           {searchText.length > 0 ? (
-            <div>
+            <div className="flex flex-col">
               {searchResults.map((user) => (
                 <div
                   key={user.id}
                   onClick={() => user.username && startPrivateChat(user.username)}
-                  className="bg-black p-[10px] cursor-pointer hover:bg-gray-800 flex items-center gap-3"
+                  className={`p-[10px] cursor-pointer flex items-center gap-3 hover:bg-secondary-bg`}
                 >
-                  <div className="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden relative">
-                    {user.avatar ? (
-                      <img
-                        src={`${import.meta.env.VITE_BACKEND_URL}${user.avatar}`}
-                        alt={user.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-white font-semibold">
-                        {user.name?.charAt(0)?.toUpperCase()}
-                      </span>
-                    )}
-                    <div
-                      className={`absolute bottom-0 right-0 w-3 h-3 rounded-full ${onlineUsers.has(Number(user.id)) ? "bg-green-500" : "bg-gray-500"
-                        }`}
-                    />
-                  </div>
+                  <AvatarWithStatus
+                    avatar={user.avatar}
+                    name={user.name || ""}
+                    isOnline={onlineUsers.has(Number(user.id))}
+                  />
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold truncate">{user.name}</div>
                     <div className="text-sm text-gray-400 truncate">@{user.username}</div>
@@ -261,55 +258,46 @@ const ChatList: React.FC<ChatListProps> = ({ setChatId }) => {
               ))}
             </div>
           ) : (
-            <div className="flex flex-col gap-[10px]">
+            <div className="flex flex-col">
               {chats.map((chat) => (
                 <div
                   onContextMenu={(e) => handleOpenPopupMenu(e, chat.id)}
                   key={chat.id}
                   onClick={() => {
-                    navigate(`/msg/${chat.id}`);
-                    setChatId(chat.id);
+                    const routeId = chat.chat_type === "direct" && chat.username ? chat.username : chat.id;
+                    navigate(`/msg/${routeId}`);
+                    setChatId(routeId);
                   }}
-                  className={`p-[10px] cursor-pointer hover:bg-gray-800 flex items-center gap-3 ${currentChatId === chat.id ? "bg-blue-900 border-l-4 border-blue-400" : "bg-black"
+                  className={`p-[10px] cursor-pointer flex items-center gap-3 ${currentChatId === (chat.chat_type === "direct" && chat.username ? chat.username : chat.id) ? "bg-tertiary-bg" : "hover:bg-secondary-bg"
                     }`}
                 >
-                  <div className="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center overflow-hidden relative">
-                    {chat.avatar ? (
-                      <img
-                        src={`${import.meta.env.VITE_BACKEND_URL}${chat.avatar}`}
-                        alt={chat.display_name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-white font-semibold">
-                        {chat.display_name?.charAt(0)?.toUpperCase()}
-                      </span>
-                    )}
-                    {chat.chat_type === "direct" && (
-                      <div
-                        className={`absolute bottom-0 right-0 w-3 h-3 rounded-full ${onlineUsers.has(
-                          chats.find((c) => c.id === chat.id)?.user_id || 0
-                        )
-                          ? "bg-green-500"
-                          : "bg-gray-500"
-                          }`}
-                      />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold truncate">{chat.display_name}</div>
+                  <AvatarWithStatus
+                    avatar={chat.avatar}
+                    name={chat.display_name || ""}
+                    isOnline={chat.chat_type === "direct" && onlineUsers.has(chats.find((c) => c.id === chat.id)?.user_id || 0)}
+                  />
+                  <div className="flex-1 flex-col min-w-0">
+                    <div className="w-full flex justify-between gap-[5px]">
+                      <div className="font-semibold truncate">{chat.display_name}</div>
+                      <div className="text-sm text-white/40">{new Date(String(chat.last_timestamp)).toLocaleString().slice(12, 17)}</div>
+                    </div>
+
                     {chat.last_message && (
-                      <div className="w-full flex justify-between">
-                        <div className="text-sm text-gray-400 truncate">{chat.last_message}</div>
-                        <div className="text-sm text-gray-400 truncate">{new Date(String(chat.last_timestamp)).toLocaleString().slice(12, 17)}</div>
+                      <div className="w-full flex gap-[10px] items-end justify-between">
+                        <div className="text-sm text-white/40 truncate">{chat.last_message}</div>
+                        {chat.unread_count > 0 && (
+                          <div className="bg-primary text-black font-bold text-[12px] rounded-full px-2 py-[3px]">
+                            {chat.unread_count}
+                          </div>
+                        )}
                       </div>
                     )}
-                    {chat.unread_count > 0 && (
-                      <div className="absolute right-2 bg-red-500 text-white text-xs rounded-full px-2 py-1">
-                        {chat.unread_count}
-                      </div>
-                    )}
+
                   </div>
+
+
+
+
                   {popupPos && popupChatId === chat.id && (
                     <div
                       ref={popupRef}
@@ -319,19 +307,23 @@ const ChatList: React.FC<ChatListProps> = ({ setChatId }) => {
                         top: popupPos.y,
                         zIndex: 10,
                       }}
-                      className="bg-[#111A1F] p-[10px] flex flex-col"
+                      className="bg-secondary-bg flex flex-col"
                     >
-                      <div
-                        onClick={() => handleClearChat(chat.id)}
-                        className="cursor-pointer p-[10px] hover:text-black hover:bg-white">
-                        Очистить история
-                      </div>
-                      <div
-                        onClick={() => handleDeleteChat(chat.id)}
-                        className="text-red-500 cursor-pointer p-[10px] hover:text-black hover:bg-red-500"
-                      >
-                        Удалить чат
-                      </div>
+                      {chat.id !== 'general' && (
+                        <div
+                          onClick={() => handleClearChat(chat.id)}
+                          className="cursor-pointer p-[10px] px-[20px] hover:text-black hover:bg-white">
+                          Очистить история
+                        </div>
+                      )}
+                      {chat.id !== 'general' && (
+                        <div
+                          onClick={() => handleDeleteChat(chat.id)}
+                          className="text-red-500 cursor-pointer p-[10px] px-[20px] hover:text-black hover:bg-red-500"
+                        >
+                          Удалить чат
+                        </div>
+                      )}
                     </div>
                   )}
 

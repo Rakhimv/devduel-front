@@ -27,8 +27,10 @@ export interface Message {
     invite_id: string;
     from_user_id: number;
     from_username: string;
+    from_avatar?: string | null;
     to_user_id: number;
     to_username: string;
+    to_avatar?: string | null;
     status: 'pending' | 'accepted' | 'declined' | 'expired' | 'abandoned';
   };
 }

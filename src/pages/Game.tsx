@@ -27,16 +27,30 @@ const Game: React.FC = () => {
         };
 
         const handleGameSessionEnd = (data: any) => {
-            setGameSession(null);
-            setLoading(false);
+            console.log('game_session_end received:', data);
+            
+            // Always disconnect player from game
             setIsInGame(false);
             setGameSessionId(null);
             setGameDuration(null);
             
-            if (data.reason === 'player_left') {
-                setError('Другой игрок покинул игру');
+            // If data contains session info (not just reason), update session to show final state with winner
+            if (data && data.id && data.status === 'finished') {
+                console.log('Setting game session with finished status:', data);
+                setGameSession(data as GameSession);
+                setLoading(false);
+                setError(null); // Clear any previous error
             } else {
-                setError('Игра завершена');
+                // Legacy format with just reason or invalid data
+                console.log('Legacy format or invalid data:', data);
+                setGameSession(null);
+                setLoading(false);
+                
+                if (data?.reason === 'player_left') {
+                    setError('Другой игрок покинул игру');
+                } else {
+                    setError('Игра завершена');
+                }
             }
         };
 
@@ -49,9 +63,15 @@ const Game: React.FC = () => {
          
         };
 
+        const handleGameProgressUpdate = (_progress: { playerLevel: number; opponentLevel: number }) => {
+            // Progress update is handled in GameInterface component
+            // Just trigger a re-check if needed
+        };
+
         socket.on('game_session_update', handleGameSessionUpdate);
         socket.on('game_session_end', handleGameSessionEnd);
         socket.on('game_not_found', handleGameNotFound);
+        socket.on('game_progress_update', handleGameProgressUpdate);
 
         socket.emit('join_game_session', { sessionId });
 
@@ -59,6 +79,7 @@ const Game: React.FC = () => {
             socket.off('game_session_update', handleGameSessionUpdate);
             socket.off('game_session_end', handleGameSessionEnd);
             socket.off('game_not_found', handleGameNotFound);
+            socket.off('game_progress_update', handleGameProgressUpdate);
         };
     }, [socket, sessionId, user]);
 
