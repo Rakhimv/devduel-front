@@ -38,13 +38,13 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, classNa
       />
       
       {/* Modal */}
-      <div className={`relative bg-[#485761] rounded-lg shadow-xl max-w-md w-full mx-4 ${className}`}>
+      <div className={`relative bg-primary-bg border border-primary-bdr rounded-lg shadow-xl max-w-md w-full mx-4 ${className}`}>
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-600">
-          <h2 className="text-xl font-semibold text-white">{title}</h2>
+        <div className="flex items-center justify-between p-4 border-b border-primary-bdr">
+          <h2 className="text-lg font-semibold text-white">{title}</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-white/40 hover:text-white transition-colors"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -53,7 +53,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, classNa
         </div>
         
         {/* Content */}
-        <div className="p-6">
+        <div className="p-4">
           {children}
         </div>
       </div>

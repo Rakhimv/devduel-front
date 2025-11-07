@@ -2,6 +2,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useGame } from "../context/GameContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FaGamepad, FaComments, FaTrophy, FaUser, FaSignOutAlt } from "react-icons/fa";
+import { getAvatarUrl } from "../utils/avatarUrl";
 
 const Header = () => {
     const { user, logout } = useAuth();
@@ -33,7 +34,7 @@ const Header = () => {
                     <div className="flex items-center gap-3">
                         <img 
                             className="w-10 h-10 rounded-full border-2 border-gray-600" 
-                            src={`${import.meta.env.VITE_BACKEND_URL}${user?.avatar || "/default.png"}`} 
+                            src={getAvatarUrl(user?.avatar)} 
                             alt="Avatar"
                         />
                         <div className="flex flex-col">
@@ -68,19 +69,19 @@ const Header = () => {
                         <FaTrophy size={20} />
                     </button>
 
-                    <button
-                        onClick={() => gameSessionId ? handleNavigation(`/game/${gameSessionId}`) : handleNavigation('/msg')}
-                        className={`p-2 rounded-lg transition-colors ${
-                            gameSessionId && isActive('/game')
-                                ? 'bg-green-600 text-white'
-                                : gameSessionId
-                                ? 'text-green-400 hover:text-white hover:bg-gray-700'
-                                : 'text-gray-400 hover:text-white hover:bg-gray-700'
-                        }`}
-                        title={gameSessionId ? "Игра" : "Нет активной игры"}
-                    >
-                        <FaGamepad size={20} />
-                    </button>
+                    {gameSessionId && (
+                        <button
+                            onClick={() => handleNavigation(`/game/${gameSessionId}`)}
+                            className={`p-2 rounded-lg transition-colors ${
+                                isActive('/game')
+                                    ? 'bg-green-600 text-white'
+                                    : 'text-green-400 hover:text-white hover:bg-gray-700'
+                            }`}
+                            title="Игра"
+                        >
+                            <FaGamepad size={20} />
+                        </button>
+                    )}
 
                     <button
                         onClick={() => handleNavigation('/profile')}

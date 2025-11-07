@@ -1,3 +1,5 @@
+import { getAvatarUrl } from "../../utils/avatarUrl";
+
 type AvatarWithStatusProps = {
   avatar?: string | null;
   name: string;
@@ -14,7 +16,7 @@ const AvatarWithStatus: React.FC<AvatarWithStatusProps> = ({
       <div className="w-full h-full rounded-full bg-primary flex items-center justify-center overflow-hidden ">
         {avatar ? (
           <img
-            src={`${import.meta.env.VITE_BACKEND_URL}${avatar}`}
+            src={getAvatarUrl(avatar)}
             alt={name}
             className="w-full h-full object-cover"
           />

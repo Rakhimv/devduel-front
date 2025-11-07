@@ -1,19 +1,122 @@
-import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback, memo, type Dispatch, type SetStateAction } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import type { ChatInList } from "../../types/chat";
 import { api } from "../../api/api";
 import { useAuth } from "../../hooks/useAuth";
 import AvatarWithStatus from "./AvatarWithStatus";
+import { Virtuoso } from "react-virtuoso";
+import { ChatListSkeleton } from "../ui/ChatSkeleton";
+import { motion, AnimatePresence } from "framer-motion";
 
 type ChatListProps = {
   setChatId: Dispatch<SetStateAction<string | null>>;
 };
+
+// Мемоизированный компонент элемента чата
+const ChatItem = memo(({ 
+  chat, 
+  isActive, 
+  onlineUsers, 
+  onChatClick, 
+  onContextMenu 
+}: {
+  chat: ChatInList;
+  isActive: boolean;
+  onlineUsers: Set<number>;
+  onChatClick: () => void;
+  onContextMenu: (e: React.MouseEvent<HTMLDivElement>) => void;
+}) => {
+  const isOnline = chat.chat_type === "direct" && onlineUsers.has(chat.user_id || 0);
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.2 }}
+      onContextMenu={onContextMenu}
+      onClick={onChatClick}
+      className={`p-[10px] cursor-pointer flex items-center gap-3 ${
+        isActive ? "bg-tertiary-bg" : "hover:bg-secondary-bg"
+      } transition-colors`}
+    >
+      <AvatarWithStatus
+        avatar={chat.avatar}
+        name={chat.display_name || ""}
+        isOnline={isOnline}
+      />
+      <div className="flex-1 flex-col min-w-0">
+        <div className="w-full flex justify-between gap-[5px]">
+          <div className="font-semibold truncate">{chat.display_name}</div>
+          {chat.last_timestamp && (
+            <div className="text-sm text-white/40 flex-shrink-0">
+              {new Date(String(chat.last_timestamp)).toLocaleString().slice(12, 17)}
+            </div>
+          )}
+        </div>
+
+        {chat.last_message && (
+          <div className="w-full flex gap-[10px] items-end justify-between">
+            <div className="text-sm text-white/40 truncate">{chat.last_message}</div>
+            {chat.unread_count > 0 && (
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="bg-primary text-black font-bold text-[12px] rounded-full px-2 py-[3px] flex-shrink-0"
+              >
+                {chat.unread_count}
+              </motion.div>
+            )}
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+});
+
+ChatItem.displayName = 'ChatItem';
+
+// Мемоизированный компонент элемента поиска
+const SearchItem = memo(({ 
+  user, 
+  isOnline, 
+  onUserClick 
+}: {
+  user: ChatInList;
+  isOnline: boolean;
+  onUserClick: () => void;
+}) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -10 }}
+      transition={{ duration: 0.15 }}
+      onClick={onUserClick}
+      className="p-[10px] cursor-pointer flex items-center gap-3 hover:bg-secondary-bg transition-colors"
+    >
+      <AvatarWithStatus
+        avatar={user.avatar}
+        name={user.name || ""}
+        isOnline={isOnline}
+      />
+      <div className="flex-1 min-w-0">
+        <div className="font-semibold truncate">{user.name}</div>
+        <div className="text-sm text-gray-400 truncate">@{user.username}</div>
+      </div>
+    </motion.div>
+  );
+});
+
+SearchItem.displayName = 'SearchItem';
 
 const ChatList: React.FC<ChatListProps> = ({ setChatId }) => {
   const [chats, setChats] = useState<ChatInList[]>([]);
   const [searchResults, setSearchResults] = useState<ChatInList[]>([]);
   const [searchText, setSearchText] = useState<string>("");
   const [onlineUsers, setOnlineUsers] = useState<Set<number>>(new Set());
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSearching, setIsSearching] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { socket } = useAuth();
@@ -105,15 +208,16 @@ const ChatList: React.FC<ChatListProps> = ({ setChatId }) => {
     };
   }, [socket, location.pathname, navigate, setChatId]);
 
-  const fetchChats = async () => {
+  const fetchChats = useCallback(async () => {
     try {
+      setIsLoading(true);
       const res = await api.get("/chats/my");
       const sortedChats = res.data.sort(
         (a: ChatInList, b: ChatInList) =>
           new Date(b.last_timestamp || 0).getTime() - new Date(a.last_timestamp || 0).getTime()
       );
       setChats(sortedChats);
-      res.data.map((chat: any) => {
+      res.data.forEach((chat: any) => {
         if (chat.chat_type === 'direct' && chat.online !== null && chat.user_id) {
           setOnlineUsers((prev) => {
             const newSet = new Set(prev);
@@ -125,15 +229,18 @@ const ChatList: React.FC<ChatListProps> = ({ setChatId }) => {
             return newSet;
           });
         }
-      })
+      });
     } catch (err: any) {
       console.error("Error fetching chats:", err.message);
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, []);
 
-  const handleSearch = async () => {
+  const handleSearch = useCallback(async () => {
     try {
       if (searchText.length > 2) {
+        setIsSearching(true);
         const res = await api.get(`/chats/search?query=${searchText}`);
         setSearchResults(res.data);
       } else {
@@ -141,8 +248,10 @@ const ChatList: React.FC<ChatListProps> = ({ setChatId }) => {
       }
     } catch (err) {
       console.error("Error searching chats:", err);
+    } finally {
+      setIsSearching(false);
     }
-  };
+  }, [searchText]);
 
   const handleDeleteChat = async (chatId: string) => {
     try {
@@ -188,16 +297,11 @@ const ChatList: React.FC<ChatListProps> = ({ setChatId }) => {
 
 
 
-  const startPrivateChat = (userLogin: string) => {
-    navigate(`/msg/${userLogin}`);
-    setChatId(userLogin);
-    setSearchText("");
-  };
-  const handleOpenPopupMenu = (event: React.MouseEvent<HTMLDivElement, MouseEvent>, chatId: string) => {
+  const handleOpenPopupMenu = useCallback((event: React.MouseEvent<HTMLDivElement, MouseEvent>, chatId: string) => {
     event.preventDefault();
     setPopupPos({ x: event.clientX, y: event.clientY });
     setPopupChatId(chatId);
-  };
+  }, []);
   const handleClickOutside = (event: MouseEvent) => {
     if (popupRef.current && !popupRef.current.contains(event.target as Node)) {
       setPopupPos(null);
@@ -217,125 +321,172 @@ const ChatList: React.FC<ChatListProps> = ({ setChatId }) => {
   }, []);
 
   useEffect(() => {
-    handleSearch();
-  }, [searchText]);
+    if (searchText.length > 2) {
+      handleSearch();
+    } else {
+      setSearchResults([]);
+      setIsSearching(false);
+    }
+  }, [searchText, handleSearch]);
 
-  const currentChatId = location.pathname.split("/msg/")[1];
+  const currentChatId = useMemo(() => location.pathname.split("/msg/")[1], [location.pathname]);
+
+  const handleChatClick = useCallback((chat: ChatInList) => {
+    const routeId = chat.chat_type === "direct" && chat.username ? chat.username : chat.id;
+    // Не перезагружать, если чат уже открыт
+    if (currentChatId === routeId) {
+      return;
+    }
+    navigate(`/msg/${routeId}`);
+    setChatId(routeId);
+  }, [navigate, setChatId, currentChatId]);
+
+  const startPrivateChat = useCallback((userLogin: string) => {
+    navigate(`/msg/${userLogin}`);
+    setChatId(userLogin);
+    setSearchText("");
+  }, [navigate, setChatId]);
+
+  const handleSearchUserClick = useCallback((user: ChatInList) => {
+    if (user.username) {
+      startPrivateChat(user.username);
+    }
+  }, [startPrivateChat]);
+
+  const itemContent = useCallback((_index: number, chat: ChatInList) => {
+    const routeId = chat.chat_type === "direct" && chat.username ? chat.username : chat.id;
+    const isActive = currentChatId === routeId;
+    
+    return (
+      <ChatItem
+        chat={chat}
+        isActive={isActive}
+        onlineUsers={onlineUsers}
+        onChatClick={() => handleChatClick(chat)}
+        onContextMenu={(e) => handleOpenPopupMenu(e, chat.id)}
+      />
+    );
+  }, [currentChatId, onlineUsers, handleChatClick]);
+
+  const searchItemContent = useCallback((_index: number, user: ChatInList) => {
+    return (
+      <SearchItem
+        user={user}
+        isOnline={onlineUsers.has(Number(user.id))}
+        onUserClick={() => handleSearchUserClick(user)}
+      />
+    );
+  }, [onlineUsers, handleSearchUserClick]);
 
   return (
     <>
-      <div className="h-full w-[300px] bg-primary-bg border-r border-primary-bdr  text-white">
-        <div className="w-full p-[10px]">
-          <input
+      <div className="h-full w-full bg-primary-bg border-r border-primary-bdr text-white flex flex-col">
+        <div className="w-full p-[10px] flex-shrink-0">
+          <motion.input
+            // initial={{ opacity: 0, y: -10 }}
+            // animate={{ opacity: 1, y: 0 }}
+            // transition={{ duration: 0.2 }}
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            className="p-[10px] outline-none bg-secondary-bg w-full"
+            className="p-[10px] outline-none bg-secondary-bg w-full placeholder:text-white/20 focus:ring-2 focus:ring-primary transition-all"
             type="text"
             placeholder="Поиск..."
           />
         </div>
 
-
-        <div className="flex flex-col gap-[10px] mt-[5px] relative">
-          {searchText.length > 0 ? (
+        <div className="flex-1 overflow-hidden relative">
+          {isLoading && chats.length === 0 ? (
             <div className="flex flex-col">
-              {searchResults.map((user) => (
-                <div
-                  key={user.id}
-                  onClick={() => user.username && startPrivateChat(user.username)}
-                  className={`p-[10px] cursor-pointer flex items-center gap-3 hover:bg-secondary-bg`}
-                >
-                  <AvatarWithStatus
-                    avatar={user.avatar}
-                    name={user.name || ""}
-                    isOnline={onlineUsers.has(Number(user.id))}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold truncate">{user.name}</div>
-                    <div className="text-sm text-gray-400 truncate">@{user.username}</div>
-                  </div>
-                </div>
-              ))}
+              <ChatListSkeleton count={8} />
             </div>
+          ) : searchText.length > 0 ? (
+            <AnimatePresence mode="wait">
+              {isSearching ? (
+                <motion.div
+                  key="loading"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="flex flex-col"
+                >
+                  <ChatListSkeleton count={3} />
+                </motion.div>
+              ) : searchResults.length > 0 ? (
+                <Virtuoso
+                  key="search-results"
+                  data={searchResults}
+                  itemContent={searchItemContent}
+                  style={{ height: '100%' }}
+                  totalCount={searchResults.length}
+                />
+              ) : (
+                <motion.div
+                  key="no-results"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex items-center justify-center h-full text-white/40"
+                >
+                  Ничего не найдено
+                </motion.div>
+              )}
+            </AnimatePresence>
+          ) : chats.length > 0 ? (
+            <Virtuoso
+              data={chats}
+              itemContent={itemContent}
+              style={{ height: '100%' }}
+              totalCount={chats.length}
+              followOutput="smooth"
+            />
           ) : (
-            <div className="flex flex-col">
-              {chats.map((chat) => (
-                <div
-                  onContextMenu={(e) => handleOpenPopupMenu(e, chat.id)}
-                  key={chat.id}
-                  onClick={() => {
-                    const routeId = chat.chat_type === "direct" && chat.username ? chat.username : chat.id;
-                    navigate(`/msg/${routeId}`);
-                    setChatId(routeId);
-                  }}
-                  className={`p-[10px] cursor-pointer flex items-center gap-3 ${currentChatId === (chat.chat_type === "direct" && chat.username ? chat.username : chat.id) ? "bg-tertiary-bg" : "hover:bg-secondary-bg"
-                    }`}
-                >
-                  <AvatarWithStatus
-                    avatar={chat.avatar}
-                    name={chat.display_name || ""}
-                    isOnline={chat.chat_type === "direct" && onlineUsers.has(chats.find((c) => c.id === chat.id)?.user_id || 0)}
-                  />
-                  <div className="flex-1 flex-col min-w-0">
-                    <div className="w-full flex justify-between gap-[5px]">
-                      <div className="font-semibold truncate">{chat.display_name}</div>
-                      <div className="text-sm text-white/40">{new Date(String(chat.last_timestamp)).toLocaleString().slice(12, 17)}</div>
-                    </div>
-
-                    {chat.last_message && (
-                      <div className="w-full flex gap-[10px] items-end justify-between">
-                        <div className="text-sm text-white/40 truncate">{chat.last_message}</div>
-                        {chat.unread_count > 0 && (
-                          <div className="bg-primary text-black font-bold text-[12px] rounded-full px-2 py-[3px]">
-                            {chat.unread_count}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                  </div>
-
-
-
-
-                  {popupPos && popupChatId === chat.id && (
-                    <div
-                      ref={popupRef}
-                      style={{
-                        position: "fixed",
-                        left: popupPos.x,
-                        top: popupPos.y,
-                        zIndex: 10,
-                      }}
-                      className="bg-secondary-bg flex flex-col"
-                    >
-                      {chat.id !== 'general' && (
-                        <div
-                          onClick={() => handleClearChat(chat.id)}
-                          className="cursor-pointer p-[10px] px-[20px] hover:text-black hover:bg-white">
-                          Очистить история
-                        </div>
-                      )}
-                      {chat.id !== 'general' && (
-                        <div
-                          onClick={() => handleDeleteChat(chat.id)}
-                          className="text-red-500 cursor-pointer p-[10px] px-[20px] hover:text-black hover:bg-red-500"
-                        >
-                          Удалить чат
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                </div>
-              ))}
-            </div>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex items-center justify-center h-full text-white/40"
+            >
+              Нет чатов
+            </motion.div>
           )}
         </div>
       </div>
 
-
-
+      <AnimatePresence>
+        {popupPos && popupChatId && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.15 }}
+            ref={popupRef}
+            style={{
+              position: "fixed",
+              left: popupPos.x,
+              top: popupPos.y,
+              zIndex: 1000,
+            }}
+            className="bg-secondary-bg flex flex-col rounded shadow-lg overflow-hidden"
+          >
+            {popupChatId && chats.find(c => c.id === popupChatId)?.id !== 'general' && (
+              <>
+                <motion.div
+                  whileHover={{ backgroundColor: 'rgba(255, 255, 255, 1)', color: '#000' }}
+                  onClick={() => popupChatId && handleClearChat(popupChatId)}
+                  className="cursor-pointer p-[10px] px-[20px] transition-colors"
+                >
+                  Очистить историю
+                </motion.div>
+                <motion.div
+                  whileHover={{ backgroundColor: 'rgba(239, 68, 68, 1)', color: '#000' }}
+                  onClick={() => popupChatId && handleDeleteChat(popupChatId)}
+                  className="text-red-500 cursor-pointer p-[10px] px-[20px] transition-colors"
+                >
+                  Удалить чат
+                </motion.div>
+              </>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 };

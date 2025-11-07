@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import AvatarChangeModal from '../components/ui/AvatarChangeModal';
 import PasswordChangeModal from '../components/ui/PasswordChangeModal';
+import { getAvatarUrl } from '../utils/avatarUrl';
 
 const Profile: React.FC = () => {
   const { user } = useAuth();
@@ -21,8 +22,8 @@ const Profile: React.FC = () => {
   };
 
   return (
-    <div className="w-full h-screen bg-[#111A1F] text-white">
-      <div className="container mx-auto px-4 py-8">
+    <div className="w-full bg-[#111A1F] text-white">
+      <div className="container mx-auto px-4 py-8 overflow-y-auto" style={{ height: 'calc(100vh - 80px)' }}>
         <h1 className="text-3xl font-bold mb-8 text-center">Профиль</h1>
         
         <div className="max-w-2xl mx-auto">
@@ -41,7 +42,7 @@ const Profile: React.FC = () => {
             <div className="flex items-center gap-6 mb-6">
               <div className="relative">
                 <img 
-                  src={`${import.meta.env.VITE_BACKEND_URL}${user?.avatar || "/default.png"}`}
+                  src={getAvatarUrl(user?.avatar)}
                   alt={user?.name}
                   className="w-20 h-20 rounded-full border-4 border-gray-600"
                 />
@@ -85,15 +86,17 @@ const Profile: React.FC = () => {
                   </button>
                 </div>
 
-                {/* Смена пароля */}
-                <div>
-                  <button
-                    onClick={() => setIsPasswordModalOpen(true)}
-                    className="w-full bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg transition-colors"
-                  >
-                    Изменить пароль
-                  </button>
-                </div>
+                {/* Смена пароля - только для локальных пользователей */}
+                {(!user?.provider || user.provider === 'local') && (
+                  <div>
+                    <button
+                      onClick={() => setIsPasswordModalOpen(true)}
+                      className="w-full bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg transition-colors"
+                    >
+                      Изменить пароль
+                    </button>
+                  </div>
+                )}
 
                 {/* Удаление аккаунта */}
                 <div>

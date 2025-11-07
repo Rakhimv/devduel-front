@@ -1,15 +1,150 @@
-import React, { useEffect, useState, useRef, type FormEvent } from "react";
+import React, { useEffect, useState, useRef, useMemo, memo, useCallback, useLayoutEffect, type FormEvent, startTransition } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../api/api";
 import type { Message } from "../../types/chat";
 import { useAuth } from "../../hooks/useAuth";
 import { useGame } from "../../context/GameContext";
 import { formatLastSeen } from "../../utils/lastSeen";
+import { getAvatarUrl } from "../../utils/avatarUrl";
+import { formatMessageDate, isDifferentDay } from "../../utils/dateFormatter";
 import GameInviteComponent from "../game/GameInvite";
 import Modal from "../ui/Modal";
 import AvatarWithStatus from "./AvatarWithStatus";
 import ChatInput from "../ui/ChatInput";
 import { FaGamepad } from "react-icons/fa";
+import { IoCheckmarkDoneSharp, IoCheckmarkSharp } from "react-icons/io5";
+import { motion, useInView, AnimatePresence } from "framer-motion";
+import { MessageListSkeleton } from "../ui/MessageSkeleton";
+
+// Интерфейс для элемента сообщения с метаданными
+interface MessageItem {
+    message: Message;
+    showDateDivider: boolean;
+    showUnreadDivider: boolean;
+    isFirstUnread: boolean;
+}
+
+// Мемоизированный компонент сообщения
+const MessageComponent = memo(({ 
+    msg, 
+    showDateDivider, 
+    showUnreadDivider, 
+    isFirstUnread,
+    userId,
+    gameEndInfo,
+    isInGame,
+    socket,
+    onContextMenu
+}: {
+    msg: Message;
+    showDateDivider: boolean;
+    showUnreadDivider: boolean;
+    isFirstUnread: boolean;
+    userId?: number;
+    gameEndInfo: { [inviteId: string]: { reason: string, duration: number } };
+    isInGame: boolean;
+    socket: any;
+    onContextMenu: (e: React.MouseEvent, messageId: number) => void;
+}) => {
+    const ref = useRef(null);
+    const isInView = useInView(ref, { once: true, margin: "-100px" });
+
+    return (
+        <>
+            {showDateDivider && (
+                <div className="flex items-center justify-center my-6 gap-3">
+                    <div className="flex-1 h-px bg-white/20"></div>
+                    <div className="text-xs text-white/60 font-medium px-2">
+                        {formatMessageDate(msg.timestamp)}
+                    </div>
+                    <div className="flex-1 h-px bg-white/20"></div>
+                </div>
+            )}
+            
+            {showUnreadDivider && isFirstUnread && (
+                <div className="my-2 border-t border-red-500 text-red-500 text-center">
+                    Непрочитанные сообщения
+                </div>
+            )}
+
+            {msg.message_type === 'game_invite' && msg.game_invite_data ? (
+                <motion.div
+                    ref={ref}
+                    initial={{ opacity: 0 }}
+                    animate={isInView ? { opacity: 1 } : { opacity: 0 }}
+                    transition={{ ease: "easeInOut", duration: 0.3 }}
+                    className="mb-4"
+                    onContextMenu={(e: any) => onContextMenu(e, msg.id)}
+                >
+                    <GameInviteComponent
+                        invite={{
+                            id: msg.game_invite_data.invite_id,
+                            fromUserId: msg.game_invite_data.from_user_id,
+                            fromUsername: msg.game_invite_data.from_username,
+                            fromAvatar: msg.game_invite_data.from_avatar,
+                            toUserId: msg.game_invite_data.to_user_id,
+                            toUsername: msg.game_invite_data.to_username,
+                            toAvatar: msg.game_invite_data.to_avatar,
+                            timestamp: msg.timestamp,
+                            status: msg.game_invite_data.status
+                        }}
+                        onAccept={() => {
+                            if (socket && msg.game_invite_data && msg.game_invite_data.invite_id && !isInGame) {
+                                console.log('Accepting invite:', msg.game_invite_data.invite_id);
+                                socket.emit("accept_game_invite", {
+                                    inviteId: msg.game_invite_data.invite_id
+                                });
+                            }
+                        }}
+                        onDecline={() => {
+                            if (socket && msg.game_invite_data && msg.game_invite_data.invite_id) {
+                                console.log('Declining invite:', msg.game_invite_data.invite_id);
+                                socket.emit("decline_game_invite", {
+                                    inviteId: msg.game_invite_data.invite_id
+                                });
+                            }
+                        }}
+                        isFromCurrentUser={msg.user_id === userId}
+                        gameEndReason={gameEndInfo[msg.game_invite_data?.invite_id || '']?.reason}
+                        gameDuration={gameEndInfo[msg.game_invite_data?.invite_id || '']?.duration}
+                        isInGame={isInGame}
+                    />
+                </motion.div>
+            ) : (
+                <motion.div
+                    ref={ref}
+                    initial={{ opacity: 0 }}
+                    animate={isInView ? { opacity: 1 } : { opacity: 0 }}
+                    transition={{ ease: "easeInOut", duration: 0.3 }}
+                    className="mb-2 flex items-end gap-2 relative"
+                    onContextMenu={(e: any) => onContextMenu(e, msg.id)}
+                >
+                    <img 
+                        src={getAvatarUrl(msg.avatar)}
+                        alt={msg.name || msg.username}
+                        className="w-[40px] h-[40px] rounded-full object-cover border-2 border-primary-bdr flex-shrink-0"
+                    />
+                    <div className="bg-primary-bg relative p-[10px] py-[10px] rounded-[10px]">
+                        <div className="text-xs text-white/60 mb-1">{msg.name || msg.username}</div>
+                        <div className="w-full mr-[80px]">
+                            <p className="text-sm break-words">{msg.text}</p>
+                        </div>
+                        <div className="absolute right-[10px] flex gap-[5px] items-center bottom-[0px]">
+                            <span className="text-[14px] text-white/40">{new Date(msg.timestamp).toLocaleTimeString().slice(0, 5)}</span>
+                            {msg.user_id === userId && (
+                                <span className={`text-xs ${msg.is_read ? 'text-primary' : 'text-white/60'}`}>
+                                    {msg.is_read ? <IoCheckmarkDoneSharp /> : <IoCheckmarkSharp />}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                </motion.div>
+            )}
+        </>
+    );
+});
+
+MessageComponent.displayName = 'MessageComponent';
 
 const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => void }> = ({ chatId, setChatId }) => {
     const { user, socket } = useAuth();
@@ -21,7 +156,7 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
     const [showUnreadDivider, setShowUnreadDivider] = useState(false);
     const [lastSeenText, setLastSeenText] = useState("");
     const [isUserOnline, setIsUserOnline] = useState(false);
-    const [gameEndInfo, setGameEndInfo] = useState<{[inviteId: string]: {reason: string, duration: number}}>({});
+    const [gameEndInfo, setGameEndInfo] = useState<{ [inviteId: string]: { reason: string, duration: number } }>({});
     const [isInviteSending, setIsInviteSending] = useState(false);
     const [showUserSelectModal, setShowUserSelectModal] = useState(false);
     const [availableUsers, setAvailableUsers] = useState<any[]>([]);
@@ -35,11 +170,17 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
     const [participantsLoading, setParticipantsLoading] = useState(false);
     const [participantsOffset, setParticipantsOffset] = useState(0);
     const [participantsTotal, setParticipantsTotal] = useState(0);
+    const [participantsSearchQuery, setParticipantsSearchQuery] = useState("");
     const participantsLimit = 10;
-    const messageEndRef = useRef<HTMLDivElement>(null);
     const currentChatIdRef = useRef<string | null>(null);
     const contextMenuRef = useRef<HTMLDivElement>(null);
-
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const messagesContainerRef = useRef<HTMLDivElement>(null);
+    const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+    const [isLoadingChatInfo, setIsLoadingChatInfo] = useState(false);
+    const [isScrolling, setIsScrolling] = useState(false);
+    const loadedChatIdRef = useRef<string | null>(null);
+    const chatTextsRef = useRef<{ [chatId: string]: string }>({});
 
     const setNullChat = () => {
         setMessages([]);
@@ -49,6 +190,8 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
         setIsUserOnline(false);
         setGameEndInfo({});
         currentChatIdRef.current = null;
+        loadedChatIdRef.current = null;
+        setIsScrolling(false);
     }
 
 
@@ -60,11 +203,35 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
 
         if (!socket) return;
 
+        // Не перезагружать, если чат уже открыт
+        if (currentChatIdRef.current === chatId) {
+            return;
+        }
+
         currentChatIdRef.current = chatId;
 
         const handleNewMessage = (msg: Message) => {
             setShowUnreadDivider(false);
-            setMessages((prev) => [...prev, msg]);
+            setMessages((prev) => {
+                // Проверяем, нет ли уже такого сообщения (оптимистичное обновление)
+                const exists = prev.some(m => m.id === msg.id);
+                if (exists) {
+                    return prev.map(m => m.id === msg.id ? msg : m);
+                }
+                return [...prev, msg];
+            });
+            // Scroll to bottom on new message - используем requestAnimationFrame для моментального скролла
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    if (messagesContainerRef.current && messagesEndRef.current) {
+                        const container = messagesContainerRef.current;
+                        const maxScroll = container.scrollHeight - container.clientHeight;
+                        container.scrollTop = maxScroll;
+                    } else {
+                        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+                    }
+                });
+            });
         };
 
         const handleMessagesReadByOther = ({ chatId: readChatId, messageIds }: any) => {
@@ -96,7 +263,7 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                 }
                 return newSet;
             });
-            
+
             if (chatInfo?.chat_type === "direct" && chatInfo?.user?.id === userId) {
                 setIsUserOnline(isOnline);
                 if (!isOnline) {
@@ -137,9 +304,9 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                 message_type: 'text' as const
             };
             setMessages((prev) => [...prev, gameEndMessage]);
-            
+
             setGameEndInfo((prev) => {
-                const newInfo = {...prev};
+                const newInfo = { ...prev };
                 messages.forEach(msg => {
                     if (msg.game_invite_data?.status === 'accepted') {
                         newInfo[msg.game_invite_data.invite_id] = {
@@ -154,7 +321,7 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
 
         const handleGameInviteExpired = (data: any) => {
             console.log('Game invite expired:', data.inviteId);
-            setMessages((prev) => 
+            setMessages((prev) =>
                 prev.map((msg) => {
                     if (msg.game_invite_data?.invite_id === data.inviteId) {
                         return {
@@ -172,7 +339,7 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
 
         const handleGameInviteDeclined = (data: any) => {
             console.log('Game invite declined:', data.inviteId);
-            setMessages((prev) => 
+            setMessages((prev) =>
                 prev.map((msg) => {
                     if (msg.game_invite_data?.invite_id === data.inviteId) {
                         return {
@@ -190,7 +357,7 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
 
         const handleGameInviteAbandoned = (data: any) => {
             console.log('Game invite abandoned:', data.inviteId);
-            setMessages((prev) => 
+            setMessages((prev) =>
                 prev.map((msg) => {
                     if (msg.game_invite_data?.invite_id === data.inviteId) {
                         return {
@@ -256,46 +423,194 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
     }, [chatId, socket, user, chatInfo]);
 
     useEffect(() => {
-        if (!chatId) return;
+        if (!chatId) {
+            setIsLoadingChatInfo(false);
+            return;
+        }
 
-        api
-            .get(`/chats/${chatId}`)
-            .then((res) => {
-                setChatInfo(res.data);
-                if (res.data.chat_type === "direct" && res.data.user) {
-                    setIsUserOnline(res.data.user.is_online || false);
-                }
+        // Не перезагружать, если чат уже загружен
+        if (loadedChatIdRef.current === chatId && chatInfo) {
+            return;
+        }
 
-                if (res.data.chatExists) {
-                    api
-                        .get(`/chats/${chatId}/messages`)
-                        .then((msgRes) => {
-                            const loadedMessages = msgRes.data.reverse();
-                            setMessages(loadedMessages);
+        // Сбросить состояние скролла при смене чата
+        setIsScrolling(false);
+        setIsLoadingChatInfo(true);
+        
+        // Сохраняем текст текущего чата перед переключением
+        if (loadedChatIdRef.current && loadedChatIdRef.current !== chatId) {
+            chatTextsRef.current[loadedChatIdRef.current] = text;
+        }
+        
+        loadedChatIdRef.current = chatId;
 
-                            const hasUnread = loadedMessages.some((msg: Message) => !msg.is_read && msg.user_id !== user?.id);
-                            setShowUnreadDivider(hasUnread);
-                        })
-                        .catch((error) => {
-                            console.error('Error fetching messages:', error);
-                            setMessages([]);
-                            setShowUnreadDivider(false);
-                        });
-                } else {
-                    setMessages([]);
-                    setShowUnreadDivider(false);
-                }
-            })
-            .catch(() => {
+        // Retry логика для загрузки чата
+        let loadAttempts = 0;
+        const maxLoadAttempts = 3;
+        const loadChatWithRetry = () => {
+            if (loadAttempts >= maxLoadAttempts) {
+                console.error("Failed to load chat after", maxLoadAttempts, "attempts");
                 setMessages([]);
                 setChatInfo(null);
                 setShowUnreadDivider(false);
+                setIsLoadingChatInfo(false);
+                loadedChatIdRef.current = null;
+                return;
+            }
+            
+            loadAttempts++;
+            startTransition(() => {
+                api
+                    .get(`/chats/${chatId}`)
+                    .then((res) => {
+                        setChatInfo(res.data);
+                        setIsLoadingChatInfo(false);
+                        if (res.data.chat_type === "direct" && res.data.user) {
+                            setIsUserOnline(res.data.user.is_online || false);
+                        }
+
+                        if (res.data.chatExists) {
+                            setIsLoadingMessages(true);
+                            setIsScrolling(true);
+                            api
+                                .get(`/chats/${chatId}/messages`)
+                                .then((msgRes) => {
+                                    const loadedMessages = msgRes.data.reverse();
+                                    startTransition(() => {
+                                        setMessages(loadedMessages);
+                                    });
+
+                                    const hasUnread = loadedMessages.some((msg: Message) => !msg.is_read && msg.user_id !== user?.id);
+                                    setShowUnreadDivider(hasUnread);
+                                    
+                                    // Плавный скролл: ждем пока DOM обновится, потом плавно скроллим
+                                    // Используем несколько requestAnimationFrame для гарантии что DOM обновлен
+                                    requestAnimationFrame(() => {
+                                        requestAnimationFrame(() => {
+                                            requestAnimationFrame(() => {
+                                                if (messagesContainerRef.current) {
+                                                    // Даем больше времени для рендера всех сообщений
+                                                    setTimeout(() => {
+                                                        if (!messagesContainerRef.current) {
+                                                            setIsScrolling(false);
+                                                            return;
+                                                        }
+                                                        
+                                                        const container = messagesContainerRef.current;
+                                                        
+                                                        // Проверяем несколько раз, что DOM полностью обновлен
+                                                        const checkAndScroll = (attempts = 0) => {
+                                                            if (attempts > 10) {
+                                                                setIsScrolling(false);
+                                                                return;
+                                                            }
+                                                            
+                                                            const maxScroll = container.scrollHeight - container.clientHeight;
+                                                            const currentScroll = container.scrollTop;
+                                                            
+                                                            // Если scrollHeight еще не стабилен, ждем еще
+                                                            if (maxScroll <= 0 && attempts < 5) {
+                                                                requestAnimationFrame(() => checkAndScroll(attempts + 1));
+                                                                return;
+                                                            }
+                                                            
+                                                            // Если уже внизу или почти внизу, не скроллим
+                                                            if (Math.abs(currentScroll - maxScroll) < 5) {
+                                                                container.scrollTop = maxScroll;
+                                                                setIsScrolling(false);
+                                                                return;
+                                                            }
+                                                            
+                                                            const distance = maxScroll - currentScroll;
+                                                            
+                                                            // Если расстояние маленькое, скроллим сразу
+                                                            if (Math.abs(distance) < 10) {
+                                                                container.scrollTop = maxScroll;
+                                                                setIsScrolling(false);
+                                                                return;
+                                                            }
+                                                            
+                                                            const duration = 600; // 600ms для плавного скролла
+                                                            const startTime = performance.now();
+                                                            
+                                                            const smoothScroll = (currentTime: number) => {
+                                                                if (!messagesContainerRef.current) {
+                                                                    setIsScrolling(false);
+                                                                    return;
+                                                                }
+                                                                
+                                                                const elapsed = currentTime - startTime;
+                                                                const progress = Math.min(elapsed / duration, 1);
+                                                                
+                                                                // Easing функция для плавности (ease-out)
+                                                                const ease = (t: number) => 1 - Math.pow(1 - t, 3);
+                                                                
+                                                                const currentScrollPos = currentScroll + distance * ease(progress);
+                                                                container.scrollTop = currentScrollPos;
+                                                                
+                                                                if (progress < 1) {
+                                                                    requestAnimationFrame(smoothScroll);
+                                                                } else {
+                                                                    // Убеждаемся что мы в самом низу - делаем финальную проверку
+                                                                    const finalMaxScroll = container.scrollHeight - container.clientHeight;
+                                                                    container.scrollTop = finalMaxScroll;
+                                                                    setIsScrolling(false);
+                                                                }
+                                                            };
+                                                            
+                                                            requestAnimationFrame(smoothScroll);
+                                                        };
+                                                        
+                                                        checkAndScroll();
+                                                    }, 150);
+                                                } else {
+                                                    setIsScrolling(false);
+                                                }
+                                            });
+                                        });
+                                    });
+                                })
+                                .catch((error) => {
+                                    console.error('Error fetching messages:', error);
+                                    setMessages([]);
+                                    setShowUnreadDivider(false);
+                                    setIsScrolling(false);
+                                })
+                                .finally(() => {
+                                    setIsLoadingMessages(false);
+                                });
+                        } else {
+                            setMessages([]);
+                            setShowUnreadDivider(false);
+                            setIsLoadingMessages(false);
+                            setIsScrolling(false);
+                        }
+                    })
+                    .catch((error) => {
+                        console.error('Error loading chat, retrying...', error);
+                        if (loadAttempts < maxLoadAttempts) {
+                            setTimeout(loadChatWithRetry, 1000 * loadAttempts);
+                        } else {
+                            setMessages([]);
+                            setChatInfo(null);
+                            setShowUnreadDivider(false);
+                            setIsLoadingChatInfo(false);
+                            loadedChatIdRef.current = null;
+                        }
+                    });
             });
+        };
+        
+        loadChatWithRetry();
     }, [chatId, user]);
 
-    useEffect(() => {
-        messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
+    // Синхронно восстанавливаем текст для чата перед рендером
+    useLayoutEffect(() => {
+        if (chatId) {
+            const savedText = chatTextsRef.current[chatId] || "";
+            setText(savedText);
+        }
+    }, [chatId]);
 
     useEffect(() => {
         if (!chatInfo?.chat_type || chatInfo.chat_type !== "direct" || !chatInfo.user?.updated_at) {
@@ -356,7 +671,6 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
 
         const targetUserId = selectedUserId || chatInfo.targetUser?.id || chatInfo.user?.id;
         if (!targetUserId) {
-            // For group chats, show user selection modal
             if (chatInfo?.chat_type === 'group') {
                 setShowUserSelectModal(true);
                 fetchOnlineUsers();
@@ -368,7 +682,7 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
 
         if (isInviteSending) return;
         setIsInviteSending(true);
-        
+
         setTimeout(() => {
             setIsInviteSending(false);
         }, 1000);
@@ -385,14 +699,14 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
 
                     setChatId(finalChatId);
                     navigate(`/msg/${finalChatId}`, { replace: true });
-                    
+
                     setTimeout(() => {
                         socket.emit("send_game_invite", {
                             chatId: finalChatId,
                             toUserId: targetUserId
                         });
                     }, 100);
-                    
+
                     return;
                 } catch (err) {
                     console.error("Error creating chat:", err);
@@ -404,7 +718,7 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                 chatId: finalChatId,
                 toUserId: targetUserId
             });
-            
+
             setShowUserSelectModal(false);
         } catch (err) {
             console.error("Error sending game invite:", err);
@@ -423,8 +737,9 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
 
 
 
-    const sendMessage = async () => {
-        if (!socket || !text.trim() || !chatId) return;
+    const sendMessage = useCallback(async () => {
+        const currentText = text;
+        if (!socket || !currentText.trim() || !chatId || !user) return;
 
         let finalChatId = chatId;
 
@@ -443,11 +758,90 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
             }
         }
 
-        socket.emit("send_message", { chatId: finalChatId, text });
+        const messageText = currentText.trim();
         setText("");
-    };
 
-    const firstUnreadIndex = messages.findIndex((msg) => !msg.is_read && msg.user_id !== user?.id);
+        // Оптимистичное обновление - добавляем сообщение сразу
+        const optimisticMessage: Message = {
+            id: Date.now(), // Временный ID
+            chat_id: finalChatId,
+            user_id: user.id,
+            username: user.login || user.name || '',
+            name: user.name || '',
+            text: messageText,
+            timestamp: new Date().toISOString(),
+            is_read: false,
+            message_type: 'text' as const,
+            avatar: user.avatar || undefined
+        };
+
+        setMessages((prev) => [...prev, optimisticMessage]);
+        
+        // Мгновенный скролл к новому сообщению
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                if (messagesContainerRef.current) {
+                    const container = messagesContainerRef.current;
+                    const maxScroll = container.scrollHeight - container.clientHeight;
+                    container.scrollTop = maxScroll;
+                } else {
+                    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+
+        // Retry логика для отправки сообщения
+        let attempts = 0;
+        const maxAttempts = 3;
+        const sendWithRetry = () => {
+            if (attempts >= maxAttempts) {
+                console.error("Failed to send message after", maxAttempts, "attempts");
+                // Удаляем оптимистичное сообщение при ошибке
+                setMessages((prev) => prev.filter(m => m.id !== optimisticMessage.id));
+                setText(messageText); // Восстанавливаем текст
+                return;
+            }
+            
+            attempts++;
+            try {
+                socket.emit("send_message", { chatId: finalChatId, text: messageText });
+            } catch (err) {
+                console.error("Error sending message, retrying...", err);
+                setTimeout(sendWithRetry, 500 * attempts);
+            }
+        };
+        
+        sendWithRetry();
+    }, [socket, chatId, user, chatInfo, navigate, setChatId, text]);
+    
+    // Стабильная функция для onChange
+    const handleTextChange = useCallback((value: string) => {
+        setText(value);
+        // Сохраняем текст в ref для текущего чата
+        if (chatId) {
+            chatTextsRef.current[chatId] = value;
+        }
+    }, [chatId]);
+
+    // Подготовка данных для отображения сообщений
+    const messageItems = useMemo(() => {
+        const items: MessageItem[] = [];
+        const firstUnreadIndex = messages.findIndex((msg) => !msg.is_read && msg.user_id !== user?.id);
+        
+        messages.forEach((msg, index) => {
+            const prevMessage = index > 0 ? messages[index - 1] : null;
+            const showDateDivider = index === 0 || (prevMessage !== null && isDifferentDay(msg.timestamp, prevMessage.timestamp));
+            
+            items.push({
+                message: msg,
+                showDateDivider: Boolean(showDateDivider),
+                showUnreadDivider: showUnreadDivider && firstUnreadIndex === index,
+                isFirstUnread: firstUnreadIndex === index
+            });
+        });
+        
+        return items;
+    }, [messages, showUnreadDivider, user?.id]);
 
     const handleMessageRightClick = (e: React.MouseEvent, messageId: number) => {
         e.preventDefault();
@@ -477,10 +871,10 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
 
     const handleChatHeaderClick = async () => {
         if (chatId === 'general') {
-            // Open participants modal for general chat
             setShowParticipantsModal(true);
             setParticipantsOffset(0);
             setParticipants([]);
+            setParticipantsSearchQuery("");
             loadParticipants(0);
         } else if (chatInfo?.chat_type === 'direct' && chatInfo?.user?.id) {
             try {
@@ -490,6 +884,23 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
             } catch (err) {
                 console.error('Failed to fetch user profile:', err);
             }
+        }
+    };
+
+    const handleParticipantClick = async (participantUsername: string) => {
+        setShowParticipantsModal(false);
+        try {
+            const res = await api.get(`/chats/${participantUsername}`);
+            if (res.data.chatExists) {
+                setChatId(res.data.chatId);
+                navigate(`/msg/${participantUsername}`, { replace: true });
+            } else {
+                // Chat doesn't exist, create it
+                navigate(`/msg/${participantUsername}`, { replace: true });
+                setChatId(participantUsername);
+            }
+        } catch (err) {
+            console.error("Error opening chat with participant:", err);
         }
     };
 
@@ -514,7 +925,7 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
     const handleParticipantsScroll = (e: React.UIEvent<HTMLDivElement>) => {
         const target = e.currentTarget;
         const isNearBottom = target.scrollHeight - target.scrollTop - target.clientHeight < 100;
-        
+
         if (isNearBottom && !participantsLoading && participants.length < participantsTotal) {
             const nextOffset = participantsOffset + participantsLimit;
             if (nextOffset < participantsTotal) {
@@ -543,27 +954,59 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
         );
     }
 
+    if (isLoadingChatInfo) {
+        return (
+            <div className="w-full h-full bg-secondary-bg text-white flex flex-col">
+                <div className="bg-primary-bg p-4 border-b border-primary-bdr h-[80px] flex items-center">
+                    <div className="flex-1 space-y-2">
+                        <div className="h-5 w-32 bg-white/10 rounded animate-pulse"></div>
+                        <div className="h-4 w-24 bg-white/10 rounded animate-pulse"></div>
+                    </div>
+                </div>
+                <div className="flex-1 flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                </div>
+            </div>
+        );
+    }
+
     if (!chatInfo) {
         return (
-            <div className="w-full h-full flex items-center justify-center text-white">
+            <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+                className="w-full h-full flex items-center justify-center text-white"
+            >
                 <div className="text-center">
                     <div className="text-red-500 text-xl mb-2">Чат не найден</div>
                     <div className="text-gray-400">У вас нет доступа к этому чату</div>
                 </div>
-            </div>
+            </motion.div>
         );
     }
 
 
     return (
         <div className="w-full h-full bg-secondary-bg text-white flex flex-col">
-            <div 
-                className={`bg-primary-bg p-4 border-b border-primary-bdr ${(chatInfo?.chat_type === 'direct' || chatId === 'general') ? 'cursor-pointer hover:bg-[#2a3441]' : ''}`}
+            <div
+                className={`bg-primary-bg p-4 border-b border-primary-bdr h-[80px] ${(chatInfo?.chat_type === 'direct' || chatId === 'general') ? 'cursor-pointer hover:bg-[#2a3441]' : ''}`}
                 onClick={(chatInfo?.chat_type === 'direct' || chatId === 'general') ? handleChatHeaderClick : undefined}
             >
                 <div>
                     <div className="flex items-center gap-2">
-                        <h2 className="text-lg font-semibold">{chatInfo.display_name}</h2>
+                        <AnimatePresence mode="wait">
+                            <motion.h2
+                                key={chatId}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.3 }}
+                                className="text-lg font-semibold"
+                            >
+                                {chatInfo.display_name}
+                            </motion.h2>
+                        </AnimatePresence>
                         {chatInfo?.chat_type === "direct" && chatInfo?.userStats && (
                             <span className="text-xs text-gray-400">
                                 ({chatInfo.userStats.games_count} игр, {chatInfo.userStats.wins_count} побед)
@@ -571,9 +1014,18 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                         )}
                     </div>
                     {chatInfo.chat_type === "direct" && (
-                        <p className={`text-sm ${chatInfo.user.is_online ? "text-primary" : "text-white/50"}`}>
-                            {lastSeenText}
-                        </p>
+                        <AnimatePresence mode="wait">
+                            <motion.p
+                                key={`${chatId}-${lastSeenText}`}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.3 }}
+                                className={`text-sm ${chatInfo.user.is_online ? "text-primary" : "text-white/50"}`}
+                            >
+                                {lastSeenText}
+                            </motion.p>
+                        </AnimatePresence>
                     )}
                     {chatId === "general" && (
                         <p className="text-sm text-white/50">
@@ -582,119 +1034,117 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                     )}
                 </div>
 
-
-                {chatInfo.chat_type === "group" && !chatInfo.isParticipant && chatId !== "general" && (
-                    <button className="mt-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-sm">
-                        Присоединиться
-                    </button>
-                )}
+                <AnimatePresence>
+                    {chatInfo.chat_type === "group" && !chatInfo.isParticipant && chatId !== "general" && (
+                        <motion.button
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="mt-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-sm"
+                        >
+                            Присоединиться
+                        </motion.button>
+                    )}
+                </AnimatePresence>
             </div>
 
-            <div className="messages flex-1 overflow-y-auto text-[20px] p-4">
-
-                {messages.map((msg, index) => (
-                    <React.Fragment key={msg.id}>
-                        {showUnreadDivider && firstUnreadIndex === index && (
-                            <div className="my-2 border-t border-red-500 text-red-500 text-center">
-                                Непрочитанные сообщения
-                            </div>
-                        )}
-                        
-                        {msg.message_type === 'game_invite' && msg.game_invite_data ? (
-                            <div className="mb-4">
-                                <GameInviteComponent
-                                    invite={{
-                                        id: msg.game_invite_data.invite_id,
-                                        fromUserId: msg.game_invite_data.from_user_id,
-                                        fromUsername: msg.game_invite_data.from_username,
-                                        fromAvatar: msg.game_invite_data.from_avatar,
-                                        toUserId: msg.game_invite_data.to_user_id,
-                                        toUsername: msg.game_invite_data.to_username,
-                                        toAvatar: msg.game_invite_data.to_avatar,
-                                        timestamp: msg.timestamp,
-                                        status: msg.game_invite_data.status
-                                    }}
-                                    onAccept={() => {
-                                        if (socket && msg.game_invite_data && msg.game_invite_data.invite_id && !isInGame) {
-                                            console.log('Accepting invite:', msg.game_invite_data.invite_id);
-                                            socket.emit("accept_game_invite", {
-                                                inviteId: msg.game_invite_data.invite_id
-                                            });
-                                        } else if (isInGame) {
-                                            console.log('Cannot accept invite - already in game');
-                                        } else {
-                                            console.error('Cannot accept invite - missing data:', msg.game_invite_data);
-                                        }
-                                    }}
-                                    onDecline={() => {
-                                        if (socket && msg.game_invite_data && msg.game_invite_data.invite_id) {
-                                            console.log('Declining invite:', msg.game_invite_data.invite_id);
-                                            socket.emit("decline_game_invite", {
-                                                inviteId: msg.game_invite_data.invite_id
-                                            });
-                                        } else {
-                                            console.error('Cannot decline invite - missing data:', msg.game_invite_data);
-                                        }
-                                    }}
-                                    isFromCurrentUser={msg.user_id === user?.id}
-                                    gameEndReason={gameEndInfo[msg.game_invite_data?.invite_id || '']?.reason}
-                                    gameDuration={gameEndInfo[msg.game_invite_data?.invite_id || '']?.duration}
+            <div className="messages flex-1 overflow-hidden text-[20px]">
+                <AnimatePresence mode="wait">
+                    {isLoadingMessages && messages.length === 0 ? (
+                        <motion.div
+                            key="loading"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="h-full overflow-y-auto px-4"
+                        >
+                            <MessageListSkeleton count={10} />
+                        </motion.div>
+                    ) : messages.length > 0 ? (
+                        <motion.div
+                            key="messages"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: isScrolling ? 0.3 : 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2, ease: "easeOut" }}
+                            ref={messagesContainerRef}
+                            className="h-full overflow-y-auto px-4 py-4"
+                            style={{ 
+                                scrollBehavior: isScrolling ? 'auto' : 'smooth',
+                                pointerEvents: isScrolling ? 'none' : 'auto'
+                            }}
+                        >
+                            {messageItems.map((item) => (
+                                <MessageComponent
+                                    key={item.message.id}
+                                    msg={item.message}
+                                    showDateDivider={item.showDateDivider}
+                                    showUnreadDivider={item.showUnreadDivider}
+                                    isFirstUnread={item.isFirstUnread}
+                                    userId={user?.id}
+                                    gameEndInfo={gameEndInfo}
                                     isInGame={isInGame}
+                                    socket={socket}
+                                    onContextMenu={handleMessageRightClick}
                                 />
-                            </div>
-                        ) : (
-                            <div 
-                                className="mb-2 flex items-center gap-2 relative"
-                                onContextMenu={(e) => handleMessageRightClick(e, msg.id)}
-                            >
-                                <span>[{new Date(msg.timestamp).toLocaleTimeString()}] &lt;{msg.username}&gt; {msg.text}</span>
-                                {msg.user_id === user?.id && (
-                                    <span className={`text-xs ${msg.is_read ? 'text-blue-400' : 'text-gray-400'}`}>
-                                        {chatInfo?.chat_type === 'group' ? (msg.is_read ? '✓✓' : '✓') : (msg.is_read ? '✓✓' : '✓')}
-                                    </span>
-                                )}
-                            </div>
-                        )}
-                    </React.Fragment>
-                ))}
-                <div ref={messageEndRef} />
+                            ))}
+                            <div ref={messagesEndRef} />
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="empty"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="flex items-center justify-center h-full text-white/40"
+                        >
+                            Нет сообщений
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
 
-            {chatInfo.canSend && (
+            <div className="w-full bg-primary-bg p-4">
                 <form
                     onSubmit={(e: FormEvent<HTMLFormElement>) => {
                         e.preventDefault();
-                        sendMessage();
+                        if (chatInfo?.canSend) {
+                            sendMessage();
+                        }
                     }}
-                    className="w-full bg-[#485761] p-4"
+                    className="w-full"
                 >
                     <div className="w-full flex items-end gap-2">
-                        <div className="flex-1">
+                        <div className="flex-1" style={{ display: chatInfo?.canSend ? 'block' : 'none' }}>
                             <ChatInput
                                 value={text}
-                                onChange={setText}
+                                onChange={handleTextChange}
                                 onSend={sendMessage}
                                 placeholder="Напишите сообщение..."
-                                disabled={false}
+                                disabled={!chatInfo?.canSend}
                             />
                         </div>
-                        <button
-                            type="button"
-                            onClick={() => sendGameInvite()}
-                            disabled={isInGame || isInviteSending}
-                            className={`p-3 rounded-lg transition-all duration-200 ${
-                                isInGame || isInviteSending
-                                    ? 'cursor-not-allowed bg-gray-500 text-gray-300' 
-                                    : 'cursor-pointer bg-amber-500 hover:bg-amber-600 hover:scale-110 active:scale-95 shadow-lg hover:shadow-amber-500/50'
-                            }`}
-                            title={isInGame ? 'Вы уже в игре' : 'Пригласить в игру'}
-                        >
-                            <FaGamepad size={24} />
-                        </button>
+                        <div style={{ display: chatInfo?.canSend ? 'block' : 'none' }}>
+                            <button
+                                type="button"
+                                onClick={() => sendGameInvite()}
+                                disabled={isInGame || isInviteSending}
+                                className={`p-3 transition-all duration-200 ${isInGame || isInviteSending
+                                    ? 'cursor-not-allowed bg-gray-500 text-gray-300'
+                                    : 'cursor-pointer bg-primary text-black    hover:bg-amber-600  shadow-lg hover:shadow-amber-500/50'
+                                    }`}
+                                title={isInGame ? 'Вы уже в игре' : 'Пригласить в игру'}
+                            >
+                                <FaGamepad size={24} />
+                            </button>
+                        </div>
                     </div>
                 </form>
-            )}
-            
+            </div>
+
             <Modal
                 isOpen={showUserSelectModal}
                 onClose={() => {
@@ -709,7 +1159,7 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                         value={userSearchQuery}
                         onChange={(e) => setUserSearchQuery(e.target.value)}
                         placeholder="Поиск по имени или логину..."
-                        className="w-full p-2 mb-4 bg-[#111A1F] text-white rounded outline-none border border-gray-600 focus:border-amber-500"
+                        className="w-full p-2 mb-4 bg-secondary-bg text-white rounded outline-none border border-primary-bdr focus:border-primary transition-colors"
                     />
                     <div className="max-h-96 overflow-y-auto">
                         {availableUsers
@@ -717,14 +1167,14 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                             .filter(u => {
                                 const query = userSearchQuery.toLowerCase();
                                 if (!query) return true;
-                                return (u.name?.toLowerCase().includes(query) || 
-                                        u.login?.toLowerCase().includes(query));
+                                return (u.name?.toLowerCase().includes(query) ||
+                                    u.login?.toLowerCase().includes(query));
                             })
                             .map((userItem) => (
                                 <button
                                     key={userItem.id}
                                     onClick={() => sendGameInvite(userItem.id)}
-                                    className="w-full p-3 flex items-center gap-3 hover:bg-[#111A1F] rounded transition-colors text-left"
+                                    className="w-full p-3 flex items-center gap-3 hover:bg-secondary-bg rounded transition-colors text-left"
                                 >
                                     <AvatarWithStatus
                                         avatar={userItem.avatar}
@@ -742,14 +1192,14 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                             .filter(u => {
                                 const query = userSearchQuery.toLowerCase();
                                 if (!query) return true;
-                                return (u.name?.toLowerCase().includes(query) || 
-                                        u.login?.toLowerCase().includes(query));
+                                return (u.name?.toLowerCase().includes(query) ||
+                                    u.login?.toLowerCase().includes(query));
                             })
                             .length === 0 && (
-                            <div className="text-center text-gray-400 py-8">
-                                {userSearchQuery ? 'Пользователи не найдены' : 'Нет доступных пользователей'}
-                            </div>
-                        )}
+                                <div className="text-center text-gray-400 py-8">
+                                    {userSearchQuery ? 'Пользователи не найдены' : 'Нет доступных пользователей'}
+                                </div>
+                            )}
                     </div>
                 </div>
             </Modal>
@@ -793,8 +1243,8 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                 {profileUser && (
                     <div className="text-white">
                         <div className="flex items-center gap-4 mb-4">
-                            <img 
-                                src={`${import.meta.env.VITE_BACKEND_URL}${profileUser.avatar || "/default.png"}`}
+                            <img
+                                src={getAvatarUrl(profileUser.avatar)}
                                 alt={profileUser.name}
                                 className="w-16 h-16 rounded-full border-2 border-gray-600"
                             />
@@ -803,11 +1253,11 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                                 <p className="text-gray-400">@{profileUser.login}</p>
                             </div>
                         </div>
-                        <div className="bg-[#5a6470] rounded-lg p-4">
-                            <h4 className="font-semibold text-lg mb-2">Статистика</h4>
-                            <p className="text-gray-300">Игр сыграно: {profileUser.games_count || 0}</p>
-                            <p className="text-gray-300">Побед: {profileUser.wins_count || 0}</p>
-                            <p className="text-gray-300">Поражений: {(profileUser.games_count || 0) - (profileUser.wins_count || 0)}</p>
+                        <div className="bg-secondary-bg border border-primary-bdr rounded-lg p-4">
+                            <h4 className="font-semibold text-lg mb-2 text-white">Статистика</h4>
+                            <p className="text-white/70">Игр сыграно: {profileUser.games_count || 0}</p>
+                            <p className="text-white/70">Побед: {profileUser.wins_count || 0}</p>
+                            <p className="text-white/70">Поражений: {(profileUser.games_count || 0) - (profileUser.wins_count || 0)}</p>
                         </div>
                     </div>
                 )}
@@ -819,39 +1269,70 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                     setShowParticipantsModal(false);
                     setParticipants([]);
                     setParticipantsOffset(0);
+                    setParticipantsSearchQuery("");
                 }}
                 title={`Участники General (${participantsTotal})`}
             >
-                <div 
-                    className="max-h-96 overflow-y-auto"
-                    onScroll={handleParticipantsScroll}
-                >
-                    {participants.map((participant) => (
-                        <div
-                            key={participant.id}
-                            className="flex items-center gap-3 p-3 hover:bg-[#111A1F] rounded transition-colors"
-                        >
-                            <AvatarWithStatus
-                                avatar={participant.avatar}
-                                name={participant.name || participant.login}
-                                isOnline={onlineUsers.has(participant.id)}
-                            />
-                            <div className="flex-1 min-w-0">
-                                <div className="font-semibold truncate text-white">{participant.name}</div>
-                                <div className="text-sm text-gray-400 truncate">@{participant.login}</div>
+                <div className="w-full">
+                    <input
+                        type="text"
+                        value={participantsSearchQuery}
+                        onChange={(e) => setParticipantsSearchQuery(e.target.value)}
+                        placeholder="Поиск по нику или имени..."
+                        className="w-full p-2 mb-4 bg-secondary-bg text-white rounded outline-none border border-primary-bdr focus:border-primary transition-colors"
+                    />
+                    <div
+                        className="max-h-96 overflow-y-auto"
+                        onScroll={handleParticipantsScroll}
+                    >
+                        {(() => {
+                            const filtered = participants
+                                .filter(participant => participant.id !== user?.id)
+                                .filter(participant => {
+                                    const query = participantsSearchQuery.toLowerCase();
+                                    if (!query) return true;
+                                    return (participant.name?.toLowerCase().includes(query) ||
+                                        participant.login?.toLowerCase().includes(query));
+                                });
+                            
+                            // Сортируем: онлайн вверху
+                            const sorted = [...filtered].sort((a, b) => {
+                                const aOnline = onlineUsers.has(a.id);
+                                const bOnline = onlineUsers.has(b.id);
+                                if (aOnline && !bOnline) return -1;
+                                if (!aOnline && bOnline) return 1;
+                                return 0;
+                            });
+                            
+                            return sorted.map((participant) => (
+                                <div
+                                    key={participant.id}
+                                    onClick={() => handleParticipantClick(participant.login)}
+                                    className="flex items-center gap-3 p-3 hover:bg-secondary-bg rounded transition-colors cursor-pointer"
+                                >
+                                    <AvatarWithStatus
+                                        avatar={participant.avatar}
+                                        name={participant.name || participant.login}
+                                        isOnline={onlineUsers.has(participant.id)}
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                        <div className="font-semibold truncate text-white">{participant.name}</div>
+                                        <div className="text-sm text-white/40 truncate">@{participant.login}</div>
+                                    </div>
+                                </div>
+                            ));
+                        })()}
+                        {participantsLoading && (
+                            <div className="text-center py-4 text-gray-400">
+                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-400 mx-auto"></div>
                             </div>
-                        </div>
-                    ))}
-                    {participantsLoading && (
-                        <div className="text-center py-4 text-gray-400">
-                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-400 mx-auto"></div>
-                        </div>
-                    )}
-                    {!participantsLoading && participants.length === 0 && (
-                        <div className="text-center py-8 text-gray-400">
-                            Нет участников
-                        </div>
-                    )}
+                        )}
+                        {!participantsLoading && participants.filter(p => p.id !== user?.id).length === 0 && (
+                            <div className="text-center py-8 text-gray-400">
+                                Нет участников
+                            </div>
+                        )}
+                    </div>
                 </div>
             </Modal>
         </div>

@@ -55,7 +55,7 @@ const GameInvite: React.FC<GameInviteProps> = ({ invite, onAccept, onDecline, is
     }
 
     return (
-      <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-4 rounded-lg border border-blue-400 shadow-lg max-w-md mx-auto">
+      <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-4 rounded-lg border border-blue-400 shadow-lg max-w-md mx-auto relative">
         <div className="text-center">
           <div className="flex items-center justify-center mb-3 gap-3">
             <AvatarWithStatus avatar={invite.fromAvatar} name={invite.fromUsername} />
@@ -74,6 +74,9 @@ const GameInvite: React.FC<GameInviteProps> = ({ invite, onAccept, onDecline, is
               <span className="text-white/80 text-xs">{statusText}</span>
             </div>
           </div>
+        </div>
+        <div className="text-xs text-white/40 absolute bottom-2 right-4">
+          {new Date(invite.timestamp).toLocaleString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
         </div>
       </div>
     );
@@ -98,7 +101,7 @@ const GameInvite: React.FC<GameInviteProps> = ({ invite, onAccept, onDecline, is
     }
 
     return (
-      <div className="bg-gradient-to-r from-gray-500 to-gray-600 p-4 rounded-lg border border-gray-400 shadow-lg max-w-md mx-auto">
+      <div className="bg-gradient-to-r from-gray-500 to-gray-600 p-4 rounded-lg border border-gray-400 shadow-lg max-w-md mx-auto relative">
         <div className="text-center">
           <div className="flex items-center justify-center mb-3 gap-3">
             <AvatarWithStatus avatar={invite.fromAvatar} name={invite.fromUsername} />
@@ -116,12 +119,15 @@ const GameInvite: React.FC<GameInviteProps> = ({ invite, onAccept, onDecline, is
             <span className="text-white/80 text-xs">{statusText}</span>
           </div>
         </div>
+        <div className="text-xs text-white/40 absolute bottom-2 right-4">
+          {new Date(invite.timestamp).toLocaleString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-4 rounded-lg border border-purple-400 shadow-lg max-w-md mx-auto">
+    <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-4 rounded-lg border border-purple-400 shadow-lg max-w-md mx-auto relative">
       <div className="text-center">
         <div className="flex items-center justify-center mb-3 gap-3">
           <AvatarWithStatus avatar={invite.fromAvatar} name={invite.fromUsername} />
@@ -170,6 +176,9 @@ const GameInvite: React.FC<GameInviteProps> = ({ invite, onAccept, onDecline, is
         <p className="text-white/70 text-xs mt-2">
           {invite.status === 'pending' ? `Приглашение активно ${timeLeft} сек` : 'Приглашение активно 30 сек'}
         </p>
+      </div>
+      <div className="text-xs text-white/40 absolute bottom-2 right-4">
+        {new Date(invite.timestamp).toLocaleString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
       </div>
     </div>
   );

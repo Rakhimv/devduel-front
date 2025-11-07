@@ -64,6 +64,13 @@ body {
     }
 }
 
+.noscroll {
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+
 .font-dd {
     font-family: "JetBrains Mono", monospace;
 }
@@ -99,4 +106,15 @@ body {
 
 .h-screen-calc {
     height: calc(100vh - 65px);
+}
+
+
+* {
+    &::-webkit-scrollbar {
+        background: var(--color-primary-bdr);
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: var(--color-primary-bg);
+    }
 }

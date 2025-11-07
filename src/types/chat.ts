@@ -19,6 +19,8 @@ export interface Message {
   chat_id: string;
   user_id: number;
   username: string;
+  name?: string;
+  avatar?: string;
   text: string;
   timestamp: string;
   is_read: boolean;

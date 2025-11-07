@@ -1,0 +1,18 @@
+tunnel: your-tunnel-name
+credentials-file: /path/to/credentials.json
+
+ingress:
+  # Правило 1: Все API запросы на бекенд
+  - hostname: your-subdomain.try.cloudflare.com
+    path: /api(/|$)(.*)
+    service: http://localhost:6047
+    originRequest:
+      rewrite:
+        - "path: /api/$2" # Убираем /api из пути для бека
+
+  # Правило 2: Все остальные запросы на фронтенд
+  - hostname: your-subdomain.try.cloudflare.com
+    service: http://localhost:5173
+
+  # Правило 3: Фолбэк
+  - service: http_status:404
