@@ -10,6 +10,7 @@ export interface User {
     online?: boolean;
     games_count?: number;
     wins_count?: number;
+    is_banned?: boolean;
 }
 
 

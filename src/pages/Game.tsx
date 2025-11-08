@@ -101,9 +101,9 @@ const Game: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="w-full h-screen-calc bg-[#111A1F] flex items-center justify-center">
+            <div className="w-full h-screen-calc bg-secondary-bg flex items-center justify-center">
                 <div className="text-center text-white">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+                    <div className="animate-spin w-12 h-12 border-2 border-primary border-t-transparent mx-auto mb-4"></div>
                     <div>Загрузка игры...</div>
                 </div>
             </div>
@@ -112,12 +112,12 @@ const Game: React.FC = () => {
 
     if (error) {
         return (
-            <div className="w-full h-screen-calc bg-[#111A1F] flex items-center justify-center">
+            <div className="w-full h-screen-calc bg-secondary-bg flex items-center justify-center">
                 <div className="text-center text-white">
-                    <div className="text-red-500 text-xl mb-4">{error}</div>
+                    <div className="text-redDD text-xl mb-4">{error}</div>
                     <button
                         onClick={() => navigate('/msg')}
-                        className="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg"
+                        className="bg-primary hover:bg-primary/80 text-black px-6 py-3 text-sm font-semibold border border-primary cursor-pointer"
                     >
                         Вернуться в чат
                     </button>
@@ -128,12 +128,12 @@ const Game: React.FC = () => {
 
     if (!gameSession) {
         return (
-            <div className="w-full h-screen-calc bg-[#111A1F] flex items-center justify-center">
+            <div className="w-full h-screen-calc bg-secondary-bg flex items-center justify-center">
                 <div className="text-center text-white">
-                    <div className="text-gray-400 text-xl mb-4">Игровая сессия не найдена</div>
+                    <div className="text-white/60 text-xl mb-4">Игровая сессия не найдена</div>
                     <button
                         onClick={() => navigate('/msg')}
-                        className="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg"
+                        className="bg-primary hover:bg-primary/80 text-black px-6 py-3 text-sm font-semibold border border-primary cursor-pointer"
                     >
                         Вернуться в чат
                     </button>
@@ -143,7 +143,7 @@ const Game: React.FC = () => {
     }
 
     return (
-        <div className="w-full h-screen-calc bg-[#111A1F]">
+        <div className="w-full h-screen-calc bg-secondary-bg">
             <GameInterface
                 gameSession={gameSession}
                 currentUserId={user?.id || 0}

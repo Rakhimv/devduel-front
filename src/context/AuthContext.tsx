@@ -32,10 +32,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 const fetchedUser = await getUser();
                 setUser(fetchedUser);
                 setIsAuth(true);
-            } catch (err) {
+            } catch (err: any) {
                 console.error("Не удалось получить пользователя: ", err);
-                setUser(null);
-                setIsAuth(false);
+                if (err.isBanned) {
+                    setUser(null);
+                    setIsAuth(false);
+                    window.history.pushState(null, '', '/banned');
+                    window.dispatchEvent(new PopStateEvent('popstate'));
+                } else {
+                    setUser(null);
+                    setIsAuth(false);
+                }
             } finally {
                 setIsLoading(false)
             }

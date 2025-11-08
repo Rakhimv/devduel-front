@@ -5,6 +5,8 @@ import GameCanvas from './GameCanvas';
 import { getGameProgress } from '../../api/api';
 import { Timer } from './Timer';
 import { useAuth } from '../../hooks/useAuth';
+import { getAvatarUrl } from '../../utils/avatarUrl';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 interface GameInterfaceProps {
   gameSession: GameSession;
@@ -22,7 +24,6 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
   onTaskSubmitted
 }) => {
 
-
   const [gameProgress, setGameProgress] = useState<{
     currentLevel: number;
     playerLevel: number;
@@ -34,10 +35,6 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
 
   const isPlayer1 = gameSession.player1.id === currentUserId;
   const currentPlayer = isPlayer1 ? gameSession.player1 : gameSession.player2;
-
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
-  const player1AvatarUrl = gameSession.player1.avatar ? `${backendUrl}${gameSession.player1.avatar}` : undefined;
-  const player2AvatarUrl = gameSession.player2.avatar ? `${backendUrl}${gameSession.player2.avatar}` : undefined;
 
   const [lastGameSessionId, setLastGameSessionId] = React.useState<string | null>(null);
   const { socket } = useAuth();
@@ -55,14 +52,12 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
 
     const handleGameProgressUpdate = (progress: { playerLevel: number; opponentLevel: number }) => {
       if (gameProgress) {
-        // Update progress when received from socket
         setGameProgress(prev => prev ? {
           ...prev,
           playerLevel: progress.playerLevel,
           opponentLevel: progress.opponentLevel
         } : null);
       } else {
-        // If no progress yet, reload it
         loadGameProgress();
       }
     };
@@ -77,7 +72,6 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
   // Handle game finish - wait for animation before showing modal
   useEffect(() => {
     if (gameSession.status === 'finished') {
-      // Wait for GameCanvas animation to complete (1 second) + small buffer
       const timer = setTimeout(() => {
         setShowFinishedModal(true);
       }, 1100);
@@ -130,184 +124,208 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
     }
   };
 
+  const player1Level = isPlayer1 ? (gameProgress?.playerLevel || gameSession.player1Level || 1) : (gameProgress?.opponentLevel || gameSession.player1Level || 1);
+  const player2Level = !isPlayer1 ? (gameProgress?.playerLevel || gameSession.player2Level || 1) : (gameProgress?.opponentLevel || gameSession.player2Level || 1);
+
   return (
-    <div className="w-full bg-[#111A1F] text-white flex flex-col h-full">
-
-      <div className="bg-[#485761] p-4 border-b border-gray-600">
-        <div className="flex justify-between items-center">
-
-          <div className="flex justify-between items-center">
-            <div className="flex gap-8">
-
-              <div className={`p-4 rounded-lg border-2 ${isPlayer1 ? 'border-blue-500 bg-blue-900/20' : 'border-gray-600 bg-gray-800/20'
-                }`}>
-                <div className="text-center">
-                  <div className="text-lg font-semibold">{gameSession.player1.username}</div>
-                  <div className="text-sm text-gray-300">Level: {isPlayer1 ? (gameProgress?.playerLevel || gameSession.player1Level || 1) : (gameProgress?.opponentLevel || gameSession.player1Level || 1)}</div>
-                </div>
-              </div>
-
-              <div className="flex items-center">
-                <div className="text-2xl font-bold text-yellow-500">VS</div>
-              </div>
-
-              <div className={`p-4 rounded-lg border-2 ${!isPlayer1 ? 'border-blue-500 bg-blue-900/20' : 'border-gray-600 bg-gray-800/20'
-                }`}>
-                <div className="text-center">
-                  <div className="text-lg font-semibold">{gameSession.player2.username}</div>
-                  <div className="text-sm text-gray-300">Level: {!isPlayer1 ? (gameProgress?.playerLevel || gameSession.player2Level || 1) : (gameProgress?.opponentLevel || gameSession.player2Level || 1)}</div>
-                </div>
+    <div className="w-full bg-secondary-bg text-white flex flex-col h-full">
+      {/* Header */}
+      <div className="bg-primary-bg p-3 border-b border-primary-bdr">
+        <div className="grid grid-cols-3 items-center gap-4">
+          {/* Игроки */}
+          <div className="flex items-center gap-4 justify-start">
+            <div className="flex items-center gap-2">
+              <img 
+                src={getAvatarUrl(gameSession.player1.avatar)}
+                alt={gameSession.player1.username}
+                className="w-10 h-10 border border-primary-bdr object-cover"
+                style={{ aspectRatio: '1/1' }}
+              />
+              <div>
+                <div className="text-sm font-semibold text-white">{gameSession.player1.username}</div>
+                <div className="text-xs text-white/60">Level {player1Level}</div>
               </div>
             </div>
 
+            <div className="text-lg font-bold text-primary">VS</div>
+
+            <div className="flex items-center gap-2">
+              <img 
+                src={getAvatarUrl(gameSession.player2.avatar)}
+                alt={gameSession.player2.username}
+                className="w-10 h-10 border border-primary-bdr object-cover"
+                style={{ aspectRatio: '1/1' }}
+              />
+              <div>
+                <div className="text-sm font-semibold text-white">{gameSession.player2.username}</div>
+                <div className="text-xs text-white/60">Level {player2Level}</div>
+              </div>
+            </div>
           </div>
 
-          <div className="flex gap-2">
+          {/* Таймер по центру */}
+          <div className="flex justify-center">
+            <Timer startTime={gameSession.startTime || "0"} duration={gameSession.duration || 0} />
+          </div>
+
+          {/* Кнопка выхода */}
+          <div className="flex justify-end">
             <button
               onClick={onLeave}
-              className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-sm"
+              className="bg-redDD hover:bg-red-700 px-4 py-2 text-sm text-white border border-red-700 cursor-pointer"
             >
               Покинуть игру
             </button>
-
-            <div className="text-4xl font-bold text-yellow-500">
-              <Timer startTime={gameSession.startTime || "0"} duration={gameSession.duration || 0} />
-            </div>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center h-full">
+      {/* Основной контент */}
+      <div className="flex-1 flex flex-col overflow-hidden">
         {gameSession.status === 'waiting' && (
-          <div className="text-center">
-            <h3 className="text-2xl mb-4">Ожидание готовности игроков</h3>
-            <div className="flex gap-8 mb-8">
-              <div className={`p-6 rounded-lg border-2 ${isPlayer1 ? 'border-blue-500 bg-blue-900/20' : 'border-gray-600 bg-gray-800/20'
-                }`}>
-                <div className="text-center">
-                  <div className="text-lg font-semibold mb-2">{gameSession.player1.username}</div>
-                  <div className={`px-4 py-2 rounded ${gameSession.player1.isReady ? 'bg-green-600' : 'bg-gray-600'
-                    }`}>
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <h3 className="text-2xl mb-6">Ожидание готовности игроков</h3>
+              <div className="flex items-center justify-center gap-8 mb-8">
+                <div className={`p-4 border-2 ${isPlayer1 ? 'border-primary bg-primary/10' : 'border-primary-bdr bg-secondary-bg'}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <img 
+                      src={getAvatarUrl(gameSession.player1.avatar)}
+                      alt={gameSession.player1.username}
+                      className="w-8 h-8 border border-primary-bdr object-cover"
+                      style={{ aspectRatio: '1/1' }}
+                    />
+                    <div className="text-sm font-semibold">{gameSession.player1.username}</div>
+                  </div>
+                  <div className={`px-3 py-1 text-xs ${gameSession.player1.isReady ? 'bg-primary text-black' : 'bg-secondary-bg border border-primary-bdr text-white/60'}`}>
                     {gameSession.player1.isReady ? 'Готов' : 'Не готов'}
                   </div>
                 </div>
-              </div>
 
-              {/* VS */}
-              <div className="flex items-center">
-                <div className="text-4xl font-bold text-yellow-500">VS</div>
-              </div>
+                <div className="text-2xl font-bold text-primary">VS</div>
 
-              {/* Player 2 */}
-              <div className={`p-6 rounded-lg border-2 ${!isPlayer1 ? 'border-blue-500 bg-blue-900/20' : 'border-gray-600 bg-gray-800/20'
-                }`}>
-                <div className="text-center">
-                  <div className="text-lg font-semibold mb-2">{gameSession.player2.username}</div>
-                  <div className={`px-4 py-2 rounded ${gameSession.player2.isReady ? 'bg-green-600' : 'bg-gray-600'
-                    }`}>
+                <div className={`p-4 border-2 ${!isPlayer1 ? 'border-primary bg-primary/10' : 'border-primary-bdr bg-secondary-bg'}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <img 
+                      src={getAvatarUrl(gameSession.player2.avatar)}
+                      alt={gameSession.player2.username}
+                      className="w-8 h-8 border border-primary-bdr object-cover"
+                      style={{ aspectRatio: '1/1' }}
+                    />
+                    <div className="text-sm font-semibold">{gameSession.player2.username}</div>
+                  </div>
+                  <div className={`px-3 py-1 text-xs ${gameSession.player2.isReady ? 'bg-primary text-black' : 'bg-secondary-bg border border-primary-bdr text-white/60'}`}>
                     {gameSession.player2.isReady ? 'Готов' : 'Не готов'}
                   </div>
                 </div>
               </div>
-            </div>
 
-            {!currentPlayer.isReady && (
-              <button
-                onClick={onReady}
-                className="bg-green-600 hover:bg-green-700 px-8 py-3 rounded-lg text-lg font-semibold"
-              >
-                Готов к игре
-              </button>
-            )}
+              {!currentPlayer.isReady && (
+                <button
+                  onClick={onReady}
+                  className="bg-primary hover:bg-primary/80 text-black px-8 py-3 text-lg font-semibold border border-primary cursor-pointer"
+                >
+                  Готов к игре
+                </button>
+              )}
+            </div>
           </div>
         )}
 
         {gameSession.status === 'ready' && (
-          <div className="text-center">
-            <h3 className="text-2xl mb-4">Оба игрока готовы!</h3>
-            <p className="text-lg mb-4">Игра начнется через несколько секунд...</p>
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto"></div>
-          </div>
-        )}
-
-        {gameSession.status === 'in_progress' && (
-          <div className="w-full h-full flex flex-col">
-
-            <div className="flex-1 flex">
-              <div className="w-1/3 border-r border-gray-600 p-4">
-                <div className="h-full">
-                  {gameProgress?.currentTask ? (
-                    <div className="space-y-4">
-                      <div>
-                        <h3 className="text-lg font-semibold text-white mb-2">{gameProgress.currentTask.title}</h3>
-                        <span className={`px-2 py-1 rounded text-xs ${gameProgress.currentTask.difficulty === 'easy' ? 'bg-green-600' :
-                          gameProgress.currentTask.difficulty === 'medium' ? 'bg-yellow-600' : 'bg-red-600'
-                          }`}>
-                          {gameProgress.currentTask.difficulty}
-                        </span>
-                        <span className="ml-2 px-2 py-1 rounded text-xs bg-blue-600">
-                          Level {gameProgress.currentLevel}
-                        </span>
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-300 mb-1">Описание:</h4>
-                        <p className="text-sm text-gray-400">{gameProgress.currentTask.description}</p>
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-300 mb-1">Пример входных данных:</h4>
-                        <code className="block bg-gray-800 p-2 rounded text-sm text-green-400">
-                          {gameProgress.currentTask.input_example}
-                        </code>
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-300 mb-1">Пример выходных данных:</h4>
-                        <code className="block bg-gray-800 p-2 rounded text-sm text-blue-400">
-                          {gameProgress.currentTask.output_example}
-                        </code>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-gray-400">
-                      Загрузка задачи...
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="w-1/2 max-w-1/2 border-r border-gray-600">
-                <div className="h-full">
-                  <CodeEditor
-                    gameId={gameSession.id}
-                    taskId={gameProgress?.currentTask?.id}
-                    onTaskSubmitted={(success, testResults, gameFinished) => handleTaskSubmitted(success, testResults, gameFinished)}
-                  />
-                </div>
-              </div>
-
-              <div className="w-1/2">
-                <GameCanvas
-                  width={800}
-                  height={600}
-                  player1Level={isPlayer1 ? (gameProgress?.playerLevel || 1) : (gameProgress?.opponentLevel || 1)}
-                  player2Level={isPlayer1 ? (gameProgress?.opponentLevel || 1) : (gameProgress?.playerLevel || 1)}
-                  player1Username={gameSession.player1.username}
-                  player2Username={gameSession.player2.username}
-                  player1Avatar={player1AvatarUrl}
-                  player2Avatar={player2AvatarUrl}
-                />
-              </div>
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <h3 className="text-2xl mb-4">Оба игрока готовы!</h3>
+              <p className="text-lg mb-4 text-white/60">Игра начнется через несколько секунд...</p>
+              <div className="animate-spin w-12 h-12 border-2 border-primary border-t-transparent mx-auto"></div>
             </div>
           </div>
         )}
 
-        {/* Show finished modal after animation delay */}
+        {gameSession.status === 'in_progress' && (
+          <PanelGroup direction="horizontal" className="flex-1 overflow-hidden">
+            {/* Левая панель - Задача */}
+            <Panel defaultSize={25} minSize={20} maxSize={40} className="bg-primary-bg">
+              <div className="h-full p-4 overflow-y-auto border-r border-primary-bdr">
+                {gameProgress?.currentTask ? (
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-white mb-2">{gameProgress.currentTask.title}</h3>
+                      <div className="flex gap-2 flex-wrap">
+                        <span className={`px-2 py-1 text-xs border ${gameProgress.currentTask.difficulty === 'easy' ? 'border-greenDD text-greenDD' :
+                          gameProgress.currentTask.difficulty === 'medium' ? 'border-orangeDD text-orangeDD' : 'border-redDD text-redDD'
+                          }`}>
+                          {gameProgress.currentTask.difficulty}
+                        </span>
+                        <span className="px-2 py-1 text-xs border border-primary text-primary">
+                          Level {gameProgress.currentLevel}
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-white/80 mb-1">Описание:</h4>
+                      <p className="text-sm text-white/60 whitespace-pre-wrap">{gameProgress.currentTask.description}</p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-white/80 mb-1">Пример входных данных:</h4>
+                      <code className="block bg-secondary-bg border border-primary-bdr p-2 text-sm text-greenDD whitespace-pre-wrap break-words">
+                        {gameProgress.currentTask.input_example}
+                      </code>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-white/80 mb-1">Пример выходных данных:</h4>
+                      <code className="block bg-secondary-bg border border-primary-bdr p-2 text-sm text-blueDD whitespace-pre-wrap break-words">
+                        {gameProgress.currentTask.output_example}
+                      </code>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-white/60">
+                    Загрузка задачи...
+                  </div>
+                )}
+              </div>
+            </Panel>
+
+            <PanelResizeHandle className="w-1 bg-primary-bdr hover:bg-primary/20 transition-colors" />
+
+            {/* Центральная панель - Редактор кода */}
+            <Panel defaultSize={45} minSize={30} className="min-w-0">
+              <div className="h-full border-r border-primary-bdr overflow-hidden">
+                <CodeEditor
+                  gameId={gameSession.id}
+                  taskId={gameProgress?.currentTask?.id}
+                  onTaskSubmitted={(success, testResults, gameFinished) => handleTaskSubmitted(success, testResults, gameFinished)}
+                />
+              </div>
+            </Panel>
+
+            <PanelResizeHandle className="w-1 bg-primary-bdr hover:bg-primary/20 transition-colors" />
+
+            {/* Правая панель - Canvas */}
+            <Panel defaultSize={30} minSize={20} maxSize={40} className="overflow-hidden">
+              <GameCanvas
+                width={800}
+                height={600}
+                player1Level={player1Level}
+                player2Level={player2Level}
+                player1Username={gameSession.player1.username}
+                player2Username={gameSession.player2.username}
+                player1Avatar={getAvatarUrl(gameSession.player1.avatar)}
+                player2Avatar={getAvatarUrl(gameSession.player2.avatar)}
+              />
+            </Panel>
+          </PanelGroup>
+        )}
+
+        {/* Модальное окно завершения игры */}
         {gameSession.status === 'finished' && showFinishedModal && (
-          <div className="text-center relative">
+          <div className="flex-1 flex items-center justify-center relative">
             <div className="fixed inset-0 pointer-events-none z-50">
               {Array.from({ length: 50 }).map((_, i) => (
                 <div
                   key={i}
-                  className="absolute w-2 h-2 rounded-full"
+                  className="absolute w-2 h-2"
                   style={{
                     backgroundColor: ['#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3', '#F38181'][i % 5],
                     left: `${Math.random() * 100}%`,
@@ -319,7 +337,7 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
               ))}
             </div>
 
-            <div className="relative z-10">
+            <div className="relative z-10 text-center">
               <h3 className="text-4xl font-bold mb-6 animate-pulse">🎉 Игра завершена! 🎉</h3>
 
               {gameSession.gameResult === 'timeout' && (
@@ -341,27 +359,26 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
                       <>
                         <div className="text-6xl">🏆</div>
                         <div>
-                          <p className="text-3xl font-bold text-yellow-400 mb-2">Вы победили!</p>
-                          <p className="text-xl text-gray-300">Поздравляем с победой!</p>
+                          <p className="text-3xl font-bold text-primary mb-2">Вы победили!</p>
+                          <p className="text-xl text-white/60">Поздравляем с победой!</p>
                         </div>
                       </>
                     ) : (
                       <>
                         <div className="text-6xl">😔</div>
                         <div>
-                          <p className="text-3xl font-bold text-red-400 mb-2">Вы проиграли</p>
-                          <p className="text-xl text-gray-300">Победитель: <span className="text-yellow-400">{gameSession.winner.username}</span></p>
+                          <p className="text-3xl font-bold text-redDD mb-2">Вы проиграли</p>
+                          <p className="text-xl text-white/60">Победитель: <span className="text-primary">{gameSession.winner.username}</span></p>
                         </div>
                       </>
                     )}
                   </div>
-            
                 </div>
               )}
 
               <button
                 onClick={onLeave}
-                className="bg-blue-600 hover:bg-blue-700 px-8 py-3 rounded-lg text-lg font-semibold transform hover:scale-105 transition-transform"
+                className="bg-primary hover:bg-primary/80 text-black px-8 py-3 text-lg font-semibold border border-primary cursor-pointer"
               >
                 Вернуться в чат
               </button>

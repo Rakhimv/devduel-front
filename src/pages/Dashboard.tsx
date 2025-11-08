@@ -1,8 +1,6 @@
 import { useParams } from "react-router-dom";
 import Messanger from "../components/chat/Messanger";
 import Header from "../components/Header";
-import GameStatusBanner from "../components/GameStatusBanner";
-
 
 
 
@@ -12,7 +10,6 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen w-full">
       <Header />
-      <GameStatusBanner />
       <Messanger initialChatId={id || null} />
     </div>
   );

@@ -3,6 +3,7 @@ import * as monaco from "monaco-editor";
 import { useState, useEffect } from "react";
 import { useCode } from "../../context/CodeContext";
 import { submitTaskSolution, getTaskTemplate } from "../../api/api";
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 const languages = [
   { name: "javascript", id: 102, defaultCode: "// JavaScript code\nconsole.log('Hello, World!');" },
@@ -15,6 +16,7 @@ const languages = [
 ];
 
 loader.config({ monaco });
+
 
 interface CodeEditorProps {
   gameId?: string;
@@ -68,12 +70,12 @@ export default function CodeIDE({ gameId, taskId, onTaskSubmitted }: CodeEditorP
 
   const runCodeHandler = async () => {
     if (!gameId || !taskId) {
-      setOutput("Error: Game or task context not available");
+      setOutput("Ошибка: Контекст игры или задачи недоступен");
       return;
     }
 
     setIsLoading(true);
-    setOutput("Running test...");
+    setOutput("Запуск теста...");
     try {
       const result = await submitTaskSolution({
         gameId,
@@ -84,13 +86,13 @@ export default function CodeIDE({ gameId, taskId, onTaskSubmitted }: CodeEditorP
       });
 
       if (result.success) {
-        setOutput("✅ Test passed!");
+        setOutput("✅ Тест пройден!");
       } else {
         const failedTests = result.testResults.filter(test => !test.passed);
-        setOutput(`❌ Test failed.\n\nInput: ${failedTests[0]?.input}\nExpected: ${failedTests[0]?.expected}\nGot: ${failedTests[0]?.actual}`);
+        setOutput(`❌ Тест не пройден.\n\nВходные данные: ${failedTests[0]?.input}\nОжидалось: ${failedTests[0]?.expected}\nПолучено: ${failedTests[0]?.actual}`);
       }
     } catch (error: any) {
-      setOutput(`Error: ${error.message}`);
+      setOutput(`Ошибка: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -98,12 +100,12 @@ export default function CodeIDE({ gameId, taskId, onTaskSubmitted }: CodeEditorP
 
   const submitTaskHandler = async () => {
     if (!gameId || !taskId) {
-      setOutput("Error: Game or task context not available");
+      setOutput("Ошибка: Контекст игры или задачи недоступен");
       return;
     }
 
     setIsLoading(true);
-    setOutput("Submitting solution...");
+    setOutput("Отправка решения...");
     try {
       const result = await submitTaskSolution({
         gameId,
@@ -115,31 +117,69 @@ export default function CodeIDE({ gameId, taskId, onTaskSubmitted }: CodeEditorP
 
       if (result.success) {
         if (result.gameFinished) {
-          setOutput("✅ Task solved successfully! 🏆 Game finished! You won!");
+          setOutput("✅ Задача решена успешно! 🏆 Игра завершена! Вы победили!");
         } else {
-          setOutput("✅ Task solved successfully! Level up!");
+          setOutput("✅ Задача решена успешно! Повышение уровня!");
         }
       } else {
         const failedTests = result.testResults.filter(test => !test.passed);
-        setOutput(`❌ Task not solved. Failed ${failedTests.length} test(s).\n\nFailed tests:\n${failedTests.map(test => `Input: ${test.input}\nExpected: ${test.expected}\nGot: ${test.actual}\n`).join('\n')}`);
+        setOutput(`❌ Задача не решена. Провалено ${failedTests.length} тест(ов).\n\nПроваленные тесты:\n${failedTests.map(test => `Входные данные: ${test.input}\nОжидалось: ${test.expected}\nПолучено: ${test.actual}\n`).join('\n')}`);
       }
       
       onTaskSubmitted?.(result.success, result.testResults, result.gameFinished);
     } catch (error: any) {
-      setOutput(`Error: ${error.message}`);
+      setOutput(`Ошибка: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleEditorWillMount = (monaco: typeof import('monaco-editor')) => {
+    // Настройка кастомной темы Monaco Editor с primary цветом
+    monaco.editor.defineTheme('custom-dark', {
+      base: 'vs-dark',
+      inherit: true,
+      rules: [
+        { token: 'comment', foreground: '6A9955', fontStyle: 'italic' },
+        { token: 'keyword', foreground: '83D6C5', fontStyle: 'bold' },
+        { token: 'string', foreground: '94C1FA' },
+        { token: 'number', foreground: 'EBC88D' },
+        { token: 'type', foreground: '83D6C5' },
+        { token: 'function', foreground: 'DA70D6' },
+        { token: 'variable', foreground: 'ffffff' },
+      ],
+      colors: {
+        'editor.background': '#0A0A0A',
+        'editor.foreground': '#ffffff',
+        'editorLineNumber.foreground': '#6A9955',
+        'editorLineNumber.activeForeground': '#83D6C5',
+        'editor.selectionBackground': '#83D6C520',
+        'editor.selectionHighlightBackground': '#83D6C510',
+        'editorCursor.foreground': '#83D6C5',
+        'editorWhitespace.foreground': '#3B3B3B',
+        'editorIndentGuide.background': '#3B3B3B',
+        'editorIndentGuide.activeBackground': '#83D6C5',
+        'editor.lineHighlightBackground': '#161616',
+        'editorWidget.background': '#161616',
+        'editorWidget.border': '#1c1c1c',
+        'editorSuggestWidget.background': '#161616',
+        'editorSuggestWidget.border': '#1c1c1c',
+        'editorSuggestWidget.selectedBackground': '#83D6C520',
+        'editorHoverWidget.background': '#161616',
+        'editorHoverWidget.border': '#1c1c1c',
+      }
+    });
+  };
+
   return (
-    <div className="w-full h-full flex flex-col bg-black text-white">
-      <div className="flex items-center gap-4 p-2 border-b border-gray-600">
-        <span className="font-bold">Code Editor</span>
+    <div className="w-full h-full flex flex-col bg-primary-bg text-white overflow-hidden">
+      {/* Панель инструментов */}
+      <div className="flex items-center gap-4 p-2 border-b border-primary-bdr bg-secondary-bg flex-shrink-0">
+        <span className="font-bold text-sm">Редактор кода</span>
         <select
           value={language}
           onChange={(e) => handleLanguageChange(e.target.value)}
-          className="bg-gray-800 text-white rounded px-2 py-1 border border-gray-600"
+          className="bg-primary-bg border border-primary-bdr text-white px-2 py-1 text-sm cursor-pointer"
         >
           {languages.map((lang) => (
             <option key={lang.name} value={lang.name}>
@@ -150,48 +190,65 @@ export default function CodeIDE({ gameId, taskId, onTaskSubmitted }: CodeEditorP
         <button
           onClick={runCodeHandler}
           disabled={isLoading}
-          className={`px-4 py-1 rounded ${isLoading ? "bg-gray-600 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
-            } text-white`}
+          className={`px-4 py-1 text-sm border ${isLoading ? "bg-secondary-bg border-primary-bdr cursor-not-allowed text-white/60" : "bg-blueDD hover:bg-blueDD/80 text-black border-blueDD cursor-pointer"
+            }`}
         >
-          {isLoading ? "Running..." : "Run"}
+          {isLoading ? "Проверка..." : "Запустить"}
         </button>
         {gameId && taskId && (
           <button
             onClick={submitTaskHandler}
             disabled={isLoading}
-            className={`px-4 py-1 rounded ml-2 ${isLoading ? "bg-gray-600 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
-              } text-white`}
+            className={`px-4 py-1 text-sm border ${isLoading ? "bg-secondary-bg border-primary-bdr cursor-not-allowed text-white/60" : "bg-primary hover:bg-primary/80 text-black border-primary cursor-pointer"
+              }`}
           >
-            {isLoading ? "Submitting..." : "Submit Task"}
+            {isLoading ? "Проверка..." : "Подтвердить"}
           </button>
         )}
       </div>
 
-      <div className=" flex flex-col justify-between h-full overflow-hidden">
-        <div className="h-[40vh] overflow-hidden">
-          <Editor
-            height="100%"
-            width="100%"
-            defaultLanguage={language}
-            language={language}
-            theme="hc-black"
-            value={code}
-            onChange={(val) => setCode(val || "")}
-            options={{
-              minimap: { enabled: true },
-              fontSize: 14,
-              scrollBeyondLastLine: false,
-              automaticLayout: true,
-            }}
-          />
-        </div>
-        <div className="max-h-[200px] border-t border-gray-600 bg-gray-900 flex flex-col">
-          <h3 className="font-bold p-2 flex-shrink-0">Output</h3>
-          <pre className="bg-gray-800 max-h-[80%] m-2 overflow-auto rounded text-sm whitespace-pre-wrap break-words">
-            {output || "Run the code to see the output."}
-          </pre>
-        </div>
-      </div>
+      {/* Редактор и Вывод с вертикальными панелями */}
+      <PanelGroup direction="vertical" className="flex-1 min-h-0">
+        {/* Редактор кода */}
+        <Panel defaultSize={70} minSize={40} className="min-h-0">
+          <div className="h-full overflow-hidden">
+            <Editor
+              height="100%"
+              width="100%"
+              defaultLanguage={language}
+              language={language}
+              theme="custom-dark"
+              value={code}
+              onChange={(val) => setCode(val || "")}
+              beforeMount={handleEditorWillMount}
+              options={{
+                minimap: { enabled: true },
+                fontSize: 14,
+                scrollBeyondLastLine: false,
+                automaticLayout: true,
+              }}
+            />
+          </div>
+        </Panel>
+
+        <PanelResizeHandle className="h-1 bg-primary-bdr hover:bg-primary/20 transition-colors cursor-row-resize" />
+
+        {/* Панель вывода */}
+        <Panel defaultSize={30} minSize={15} maxSize={50} className="min-h-0">
+          <div className="h-full bg-secondary-bg flex flex-col border-t border-primary-bdr">
+            <div className="font-bold p-2 border-b border-primary-bdr text-sm flex-shrink-0">Вывод</div>
+            <div className="flex-1 overflow-auto p-2 min-h-0">
+              <pre className="text-sm text-white/80 whitespace-pre-wrap break-words" style={{ 
+                wordBreak: 'break-word',
+                overflowWrap: 'anywhere',
+                maxWidth: '100%'
+              }}>
+                {output || "Запустите код, чтобы увидеть вывод."}
+              </pre>
+            </div>
+          </div>
+        </Panel>
+      </PanelGroup>
     </div>
   );
 }

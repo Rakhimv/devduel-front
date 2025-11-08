@@ -12,6 +12,8 @@ import Dashboard from './pages/Dashboard';
 import Game from './pages/Game';
 import Rating from './pages/Rating';
 import Profile from './pages/Profile';
+import Admin from './pages/Admin';
+import Banned from './pages/Banned';
 import { HeaderLayout } from './layouts/HeaderLayout';
 
 
@@ -28,6 +30,7 @@ function App() {
                 <Route element={<UserExRoute />}>
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
+                  <Route path="/banned" element={<Banned />} />
                 </Route>
 
                 <Route element={<PrivateRout />}>
@@ -47,6 +50,11 @@ function App() {
                   <Route path="/game/:sessionId" element={
                     <HeaderLayout>
                       <Game />
+                    </HeaderLayout>
+                  } />
+                  <Route path="/admin" element={
+                    <HeaderLayout>
+                      <Admin />
                     </HeaderLayout>
                   } />
                 </Route>

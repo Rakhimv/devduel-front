@@ -26,7 +26,7 @@ export const Timer: React.FC<{ startTime: string; duration: number }> = ({ start
     }, [startTime, duration]);
 
     return (
-        <div className="text-4xl font-bold text-yellow-500">
+        <div className="text-2xl font-bold text-primary">
             {`${timer.minutes.toString().padStart(2, '0')}:${timer.seconds.toString().padStart(2, '0')}`}
         </div>
     );

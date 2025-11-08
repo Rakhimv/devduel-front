@@ -68,7 +68,7 @@ const AvatarChangeModal: React.FC<AvatarChangeModalProps> = ({
             accept="image/*"
             onChange={handleAvatarChange}
             disabled={isUploading}
-            className="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 disabled:opacity-50"
+            className="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 cursor-pointer file:border-0 file:text-sm file:font-semibold file:bg-primary hover:file:bg-primary file:text-primary-bg file:cursor-pointer disabled:opacity-50"
           />
           <p className="text-xs text-gray-400 mt-1">
             Максимальный размер: 5MB. Поддерживаемые форматы: JPG, PNG, GIF
@@ -86,7 +86,7 @@ const AvatarChangeModal: React.FC<AvatarChangeModalProps> = ({
           <button
             onClick={onClose}
             disabled={isUploading}
-            className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors disabled:opacity-50"
+            className="px-4 py-2 bg-secondary-bg border border-primary-bdr hover:bg-primary-bg hover:border-primary-bdr cursor-pointer text-white transition-colors disabled:opacity-50"
           >
             Отмена
           </button>

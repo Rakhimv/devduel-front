@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { api } from "../../api/api";
 import Chat from "./Chat"
 import ChatList from "./ChatList";
@@ -10,19 +10,40 @@ interface MessangerProps {
 }
 
 const Messanger = ({ initialChatId }: MessangerProps) => {
-    const [chatId, setChatId] = useState<string | null>(initialChatId || null)
+    const [chatId, setChatId] = useState<string | null>(initialChatId || null);
+    const currentRequestRef = useRef<string | null>(null);
 
     useEffect(() => {
-        if (initialChatId) {
+        // Синхронно обновляем chatId при изменении initialChatId для моментальной реакции
+        if (initialChatId === 'general') {
+            // Для general чата сразу устанавливаем chatId без API запроса
+            currentRequestRef.current = 'general';
+            setChatId('general');
+        } else if (initialChatId) {
+            // Запоминаем текущий запрос для проверки актуальности ответа
+            const requestId = initialChatId;
+            currentRequestRef.current = requestId;
+            
+            // Сначала устанавливаем initialChatId для быстрой реакции UI
+            setChatId(initialChatId);
+            
+            // Затем делаем API запрос для получения правильного chatId (может быть username -> chatId)
             api.get(`/chats/${initialChatId}`)
                 .then((res) => {
-                    setChatId(res.data.chatId);
+                    // Обновляем только если это все еще актуальный запрос
+                    if (currentRequestRef.current === requestId) {
+                        setChatId(res.data.chatId || initialChatId);
+                    }
                 })
                 .catch((error) => {
                     console.error('Ошибка получения чата:', error);
-                    setChatId(null);
+                    // В случае ошибки сбрасываем только если запрос все еще актуален
+                    if (currentRequestRef.current === requestId) {
+                        setChatId(null);
+                    }
                 });
         } else {
+            currentRequestRef.current = null;
             setChatId(null);
         }
     }, [initialChatId]);

@@ -2,9 +2,11 @@ export interface GameInvite {
   id: string;
   fromUserId: number;
   fromUsername: string;
+  fromName?: string;
   fromAvatar?: string | null;
   toUserId: number;
   toUsername: string;
+  toName?: string;
   toAvatar?: string | null;
   timestamp: string;
   status: 'pending' | 'accepted' | 'declined' | 'expired' | 'abandoned';

@@ -1,150 +1,19 @@
-import React, { useEffect, useState, useRef, useMemo, memo, useCallback, useLayoutEffect, type FormEvent, startTransition } from "react";
+import React, { useEffect, useState, useRef, useLayoutEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../api/api";
 import type { Message } from "../../types/chat";
 import { useAuth } from "../../hooks/useAuth";
 import { useGame } from "../../context/GameContext";
 import { formatLastSeen } from "../../utils/lastSeen";
-import { getAvatarUrl } from "../../utils/avatarUrl";
-import { formatMessageDate, isDifferentDay } from "../../utils/dateFormatter";
-import GameInviteComponent from "../game/GameInvite";
-import Modal from "../ui/Modal";
-import AvatarWithStatus from "./AvatarWithStatus";
-import ChatInput from "../ui/ChatInput";
-import { FaGamepad } from "react-icons/fa";
-import { IoCheckmarkDoneSharp, IoCheckmarkSharp } from "react-icons/io5";
-import { motion, useInView, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { MessageListSkeleton } from "../ui/MessageSkeleton";
-
-// Интерфейс для элемента сообщения с метаданными
-interface MessageItem {
-    message: Message;
-    showDateDivider: boolean;
-    showUnreadDivider: boolean;
-    isFirstUnread: boolean;
-}
-
-// Мемоизированный компонент сообщения
-const MessageComponent = memo(({ 
-    msg, 
-    showDateDivider, 
-    showUnreadDivider, 
-    isFirstUnread,
-    userId,
-    gameEndInfo,
-    isInGame,
-    socket,
-    onContextMenu
-}: {
-    msg: Message;
-    showDateDivider: boolean;
-    showUnreadDivider: boolean;
-    isFirstUnread: boolean;
-    userId?: number;
-    gameEndInfo: { [inviteId: string]: { reason: string, duration: number } };
-    isInGame: boolean;
-    socket: any;
-    onContextMenu: (e: React.MouseEvent, messageId: number) => void;
-}) => {
-    const ref = useRef(null);
-    const isInView = useInView(ref, { once: true, margin: "-100px" });
-
-    return (
-        <>
-            {showDateDivider && (
-                <div className="flex items-center justify-center my-6 gap-3">
-                    <div className="flex-1 h-px bg-white/20"></div>
-                    <div className="text-xs text-white/60 font-medium px-2">
-                        {formatMessageDate(msg.timestamp)}
-                    </div>
-                    <div className="flex-1 h-px bg-white/20"></div>
-                </div>
-            )}
-            
-            {showUnreadDivider && isFirstUnread && (
-                <div className="my-2 border-t border-red-500 text-red-500 text-center">
-                    Непрочитанные сообщения
-                </div>
-            )}
-
-            {msg.message_type === 'game_invite' && msg.game_invite_data ? (
-                <motion.div
-                    ref={ref}
-                    initial={{ opacity: 0 }}
-                    animate={isInView ? { opacity: 1 } : { opacity: 0 }}
-                    transition={{ ease: "easeInOut", duration: 0.3 }}
-                    className="mb-4"
-                    onContextMenu={(e: any) => onContextMenu(e, msg.id)}
-                >
-                    <GameInviteComponent
-                        invite={{
-                            id: msg.game_invite_data.invite_id,
-                            fromUserId: msg.game_invite_data.from_user_id,
-                            fromUsername: msg.game_invite_data.from_username,
-                            fromAvatar: msg.game_invite_data.from_avatar,
-                            toUserId: msg.game_invite_data.to_user_id,
-                            toUsername: msg.game_invite_data.to_username,
-                            toAvatar: msg.game_invite_data.to_avatar,
-                            timestamp: msg.timestamp,
-                            status: msg.game_invite_data.status
-                        }}
-                        onAccept={() => {
-                            if (socket && msg.game_invite_data && msg.game_invite_data.invite_id && !isInGame) {
-                                console.log('Accepting invite:', msg.game_invite_data.invite_id);
-                                socket.emit("accept_game_invite", {
-                                    inviteId: msg.game_invite_data.invite_id
-                                });
-                            }
-                        }}
-                        onDecline={() => {
-                            if (socket && msg.game_invite_data && msg.game_invite_data.invite_id) {
-                                console.log('Declining invite:', msg.game_invite_data.invite_id);
-                                socket.emit("decline_game_invite", {
-                                    inviteId: msg.game_invite_data.invite_id
-                                });
-                            }
-                        }}
-                        isFromCurrentUser={msg.user_id === userId}
-                        gameEndReason={gameEndInfo[msg.game_invite_data?.invite_id || '']?.reason}
-                        gameDuration={gameEndInfo[msg.game_invite_data?.invite_id || '']?.duration}
-                        isInGame={isInGame}
-                    />
-                </motion.div>
-            ) : (
-                <motion.div
-                    ref={ref}
-                    initial={{ opacity: 0 }}
-                    animate={isInView ? { opacity: 1 } : { opacity: 0 }}
-                    transition={{ ease: "easeInOut", duration: 0.3 }}
-                    className="mb-2 flex items-end gap-2 relative"
-                    onContextMenu={(e: any) => onContextMenu(e, msg.id)}
-                >
-                    <img 
-                        src={getAvatarUrl(msg.avatar)}
-                        alt={msg.name || msg.username}
-                        className="w-[40px] h-[40px] rounded-full object-cover border-2 border-primary-bdr flex-shrink-0"
-                    />
-                    <div className="bg-primary-bg relative p-[10px] py-[10px] rounded-[10px]">
-                        <div className="text-xs text-white/60 mb-1">{msg.name || msg.username}</div>
-                        <div className="w-full mr-[80px]">
-                            <p className="text-sm break-words">{msg.text}</p>
-                        </div>
-                        <div className="absolute right-[10px] flex gap-[5px] items-center bottom-[0px]">
-                            <span className="text-[14px] text-white/40">{new Date(msg.timestamp).toLocaleTimeString().slice(0, 5)}</span>
-                            {msg.user_id === userId && (
-                                <span className={`text-xs ${msg.is_read ? 'text-primary' : 'text-white/60'}`}>
-                                    {msg.is_read ? <IoCheckmarkDoneSharp /> : <IoCheckmarkSharp />}
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                </motion.div>
-            )}
-        </>
-    );
-});
-
-MessageComponent.displayName = 'MessageComponent';
+import ChatHeader from "./ChatHeader";
+import ChatMessages from "./ChatMessages";
+import ChatInputForm from "./ChatInputForm";
+import MessageContextMenu from "./MessageContextMenu";
+import UserSelectModal from "./UserSelectModal";
+import ProfileModal from "./ProfileModal";
+import ParticipantsModal from "./ParticipantsModal";
 
 const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => void }> = ({ chatId, setChatId }) => {
     const { user, socket } = useAuth();
@@ -173,14 +42,9 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
     const [participantsSearchQuery, setParticipantsSearchQuery] = useState("");
     const participantsLimit = 10;
     const currentChatIdRef = useRef<string | null>(null);
-    const contextMenuRef = useRef<HTMLDivElement>(null);
-    const messagesEndRef = useRef<HTMLDivElement>(null);
-    const messagesContainerRef = useRef<HTMLDivElement>(null);
-    const [isLoadingMessages, setIsLoadingMessages] = useState(false);
-    const [isLoadingChatInfo, setIsLoadingChatInfo] = useState(false);
-    const [isScrolling, setIsScrolling] = useState(false);
-    const loadedChatIdRef = useRef<string | null>(null);
     const chatTextsRef = useRef<{ [chatId: string]: string }>({});
+    const [isLoadingChatInfo, setIsLoadingChatInfo] = useState(false);
+    const [isLoadingMessages, setIsLoadingMessages] = useState(false);
 
     const setNullChat = () => {
         setMessages([]);
@@ -190,57 +54,34 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
         setIsUserOnline(false);
         setGameEndInfo({});
         currentChatIdRef.current = null;
-        loadedChatIdRef.current = null;
-        setIsScrolling(false);
     }
 
-
+    // Socket handlers - исправленная логика из старого кода
     useEffect(() => {
         if (!chatId) {
-            setNullChat()
+            setNullChat();
             return;
         }
 
         if (!socket) return;
 
-        // Не перезагружать, если чат уже открыт
-        if (currentChatIdRef.current === chatId) {
-            return;
-        }
-
         currentChatIdRef.current = chatId;
 
         const handleNewMessage = (msg: Message) => {
+            // Убираем блок непрочитанных при новом сообщении
             setShowUnreadDivider(false);
-            setMessages((prev) => {
-                // Проверяем, нет ли уже такого сообщения (оптимистичное обновление)
-                const exists = prev.some(m => m.id === msg.id);
-                if (exists) {
-                    return prev.map(m => m.id === msg.id ? msg : m);
-                }
-                return [...prev, msg];
-            });
-            // Scroll to bottom on new message - используем requestAnimationFrame для моментального скролла
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    if (messagesContainerRef.current && messagesEndRef.current) {
-                        const container = messagesContainerRef.current;
-                        const maxScroll = container.scrollHeight - container.clientHeight;
-                        container.scrollTop = maxScroll;
-                    } else {
-                        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-                    }
-                });
-            });
+            // Моментально добавляем сообщение
+            setMessages((prev) => [...prev, msg]);
         };
 
         const handleMessagesReadByOther = ({ chatId: readChatId, messageIds }: any) => {
             if (readChatId === currentChatIdRef.current) {
+                // МОМЕНТАЛЬНО обновляем статус прочитано
                 setMessages((prev) =>
                     prev.map((msg) =>
                         (messageIds.includes(msg.id) && msg.user_id === user?.id)
-                            ? { ...msg, is_read: true }
-                            : msg
+                        ? { ...msg, is_read: true }
+                        : msg
                     )
                 );
             }
@@ -303,11 +144,11 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                 is_read: false,
                 message_type: 'text' as const
             };
-            setMessages((prev) => [...prev, gameEndMessage]);
-
-            setGameEndInfo((prev) => {
-                const newInfo = { ...prev };
-                messages.forEach(msg => {
+            setMessages((prev) => {
+                const newMessages = [...prev, gameEndMessage];
+                setGameEndInfo((gameInfo) => {
+                    const newInfo = { ...gameInfo };
+                    newMessages.forEach(msg => {
                     if (msg.game_invite_data?.status === 'accepted') {
                         newInfo[msg.game_invite_data.invite_id] = {
                             reason: data.reason,
@@ -316,6 +157,8 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                     }
                 });
                 return newInfo;
+                });
+                return newMessages;
             });
         };
 
@@ -420,191 +263,65 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
             socket.off("message_deleted", handleMessageDeleted);
             socket.off("general_chat_update", handleGeneralChatUpdate);
         };
-    }, [chatId, socket, user, chatInfo]);
+    }, [chatId, socket, user, chatInfo, navigate]);
 
+    // Загрузка чата и сообщений
     useEffect(() => {
         if (!chatId) {
             setIsLoadingChatInfo(false);
             return;
         }
 
-        // Не перезагружать, если чат уже загружен
-        if (loadedChatIdRef.current === chatId && chatInfo) {
-            return;
-        }
-
-        // Сбросить состояние скролла при смене чата
-        setIsScrolling(false);
         setIsLoadingChatInfo(true);
         
         // Сохраняем текст текущего чата перед переключением
-        if (loadedChatIdRef.current && loadedChatIdRef.current !== chatId) {
-            chatTextsRef.current[loadedChatIdRef.current] = text;
+        if (currentChatIdRef.current && currentChatIdRef.current !== chatId) {
+            chatTextsRef.current[currentChatIdRef.current] = text;
         }
-        
-        loadedChatIdRef.current = chatId;
 
-        // Retry логика для загрузки чата
-        let loadAttempts = 0;
-        const maxLoadAttempts = 3;
-        const loadChatWithRetry = () => {
-            if (loadAttempts >= maxLoadAttempts) {
-                console.error("Failed to load chat after", maxLoadAttempts, "attempts");
+        api
+            .get(`/chats/${chatId}`)
+            .then((res) => {
+                setChatInfo(res.data);
+                        setIsLoadingChatInfo(false);
+                if (res.data.chat_type === "direct" && res.data.user) {
+                    setIsUserOnline(res.data.user.is_online || false);
+                }
+
+                if (res.data.chatExists) {
+                    setIsLoadingMessages(true);
+                    api
+                        .get(`/chats/${chatId}/messages`)
+                        .then((msgRes) => {
+                            const loadedMessages = msgRes.data.reverse();
+                            setMessages(loadedMessages);
+
+                            const hasUnread = loadedMessages.some((msg: Message) => !msg.is_read && msg.user_id !== user?.id);
+                            setShowUnreadDivider(hasUnread);
+                        })
+                        .catch((error) => {
+                            console.error('Error fetching messages:', error);
+                            setMessages([]);
+                            setShowUnreadDivider(false);
+                        })
+                        .finally(() => {
+                            setIsLoadingMessages(false);
+                        });
+                } else {
+                    setMessages([]);
+                    setShowUnreadDivider(false);
+                    setIsLoadingMessages(false);
+                }
+            })
+            .catch(() => {
                 setMessages([]);
                 setChatInfo(null);
                 setShowUnreadDivider(false);
-                setIsLoadingChatInfo(false);
-                loadedChatIdRef.current = null;
-                return;
-            }
-            
-            loadAttempts++;
-            startTransition(() => {
-                api
-                    .get(`/chats/${chatId}`)
-                    .then((res) => {
-                        setChatInfo(res.data);
-                        setIsLoadingChatInfo(false);
-                        if (res.data.chat_type === "direct" && res.data.user) {
-                            setIsUserOnline(res.data.user.is_online || false);
-                        }
-
-                        if (res.data.chatExists) {
-                            setIsLoadingMessages(true);
-                            setIsScrolling(true);
-                            api
-                                .get(`/chats/${chatId}/messages`)
-                                .then((msgRes) => {
-                                    const loadedMessages = msgRes.data.reverse();
-                                    startTransition(() => {
-                                        setMessages(loadedMessages);
-                                    });
-
-                                    const hasUnread = loadedMessages.some((msg: Message) => !msg.is_read && msg.user_id !== user?.id);
-                                    setShowUnreadDivider(hasUnread);
-                                    
-                                    // Плавный скролл: ждем пока DOM обновится, потом плавно скроллим
-                                    // Используем несколько requestAnimationFrame для гарантии что DOM обновлен
-                                    requestAnimationFrame(() => {
-                                        requestAnimationFrame(() => {
-                                            requestAnimationFrame(() => {
-                                                if (messagesContainerRef.current) {
-                                                    // Даем больше времени для рендера всех сообщений
-                                                    setTimeout(() => {
-                                                        if (!messagesContainerRef.current) {
-                                                            setIsScrolling(false);
-                                                            return;
-                                                        }
-                                                        
-                                                        const container = messagesContainerRef.current;
-                                                        
-                                                        // Проверяем несколько раз, что DOM полностью обновлен
-                                                        const checkAndScroll = (attempts = 0) => {
-                                                            if (attempts > 10) {
-                                                                setIsScrolling(false);
-                                                                return;
-                                                            }
-                                                            
-                                                            const maxScroll = container.scrollHeight - container.clientHeight;
-                                                            const currentScroll = container.scrollTop;
-                                                            
-                                                            // Если scrollHeight еще не стабилен, ждем еще
-                                                            if (maxScroll <= 0 && attempts < 5) {
-                                                                requestAnimationFrame(() => checkAndScroll(attempts + 1));
-                                                                return;
-                                                            }
-                                                            
-                                                            // Если уже внизу или почти внизу, не скроллим
-                                                            if (Math.abs(currentScroll - maxScroll) < 5) {
-                                                                container.scrollTop = maxScroll;
-                                                                setIsScrolling(false);
-                                                                return;
-                                                            }
-                                                            
-                                                            const distance = maxScroll - currentScroll;
-                                                            
-                                                            // Если расстояние маленькое, скроллим сразу
-                                                            if (Math.abs(distance) < 10) {
-                                                                container.scrollTop = maxScroll;
-                                                                setIsScrolling(false);
-                                                                return;
-                                                            }
-                                                            
-                                                            const duration = 600; // 600ms для плавного скролла
-                                                            const startTime = performance.now();
-                                                            
-                                                            const smoothScroll = (currentTime: number) => {
-                                                                if (!messagesContainerRef.current) {
-                                                                    setIsScrolling(false);
-                                                                    return;
-                                                                }
-                                                                
-                                                                const elapsed = currentTime - startTime;
-                                                                const progress = Math.min(elapsed / duration, 1);
-                                                                
-                                                                // Easing функция для плавности (ease-out)
-                                                                const ease = (t: number) => 1 - Math.pow(1 - t, 3);
-                                                                
-                                                                const currentScrollPos = currentScroll + distance * ease(progress);
-                                                                container.scrollTop = currentScrollPos;
-                                                                
-                                                                if (progress < 1) {
-                                                                    requestAnimationFrame(smoothScroll);
-                                                                } else {
-                                                                    // Убеждаемся что мы в самом низу - делаем финальную проверку
-                                                                    const finalMaxScroll = container.scrollHeight - container.clientHeight;
-                                                                    container.scrollTop = finalMaxScroll;
-                                                                    setIsScrolling(false);
-                                                                }
-                                                            };
-                                                            
-                                                            requestAnimationFrame(smoothScroll);
-                                                        };
-                                                        
-                                                        checkAndScroll();
-                                                    }, 150);
-                                                } else {
-                                                    setIsScrolling(false);
-                                                }
-                                            });
-                                        });
-                                    });
-                                })
-                                .catch((error) => {
-                                    console.error('Error fetching messages:', error);
-                                    setMessages([]);
-                                    setShowUnreadDivider(false);
-                                    setIsScrolling(false);
-                                })
-                                .finally(() => {
-                                    setIsLoadingMessages(false);
-                                });
-                        } else {
-                            setMessages([]);
-                            setShowUnreadDivider(false);
-                            setIsLoadingMessages(false);
-                            setIsScrolling(false);
-                        }
-                    })
-                    .catch((error) => {
-                        console.error('Error loading chat, retrying...', error);
-                        if (loadAttempts < maxLoadAttempts) {
-                            setTimeout(loadChatWithRetry, 1000 * loadAttempts);
-                        } else {
-                            setMessages([]);
-                            setChatInfo(null);
-                            setShowUnreadDivider(false);
                             setIsLoadingChatInfo(false);
-                            loadedChatIdRef.current = null;
-                        }
-                    });
             });
-        };
-        
-        loadChatWithRetry();
     }, [chatId, user]);
 
-    // Синхронно восстанавливаем текст для чата перед рендером
+    // Восстанавливаем текст для чата
     useLayoutEffect(() => {
         if (chatId) {
             const savedText = chatTextsRef.current[chatId] || "";
@@ -612,6 +329,7 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
         }
     }, [chatId]);
 
+    // Обновление lastSeen
     useEffect(() => {
         if (!chatInfo?.chat_type || chatInfo.chat_type !== "direct" || !chatInfo.user?.updated_at) {
             return;
@@ -627,14 +345,10 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
         return () => clearInterval(interval);
     }, [chatInfo, isUserOnline]);
 
-
-
-
-
-
-
+    // Отметка сообщений как прочитанных
     useEffect(() => {
         if (!chatId || !user) return;
+
         const unreadMessages = messages.filter(msg => !msg.is_read && msg.user_id !== user.id);
         if (unreadMessages.length > 0) {
             const timer = setTimeout(() => {
@@ -647,12 +361,11 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                     .then(() => {
                         setMessages((prev) =>
                             prev.map((msg) =>
-                                (!msg.is_read && msg.user_id !== user.id && msg.id <= lastUnreadMessage.id)
-                                    ? { ...msg, is_read: true }
-                                    : msg
+                            (!msg.is_read && msg.user_id !== user.id && msg.id <= lastUnreadMessage.id)
+                                ? { ...msg, is_read: true }
+                                : msg
                             )
                         );
-
                         setShowUnreadDivider(false);
                     })
                     .catch((err) => {
@@ -663,8 +376,6 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
             return () => clearTimeout(timer);
         }
     }, [messages, chatId, user]);
-
-
 
     const sendGameInvite = async (selectedUserId?: number) => {
         if (!socket || !chatInfo) return;
@@ -696,7 +407,6 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                     finalChatId = res.data.chatId;
                     setChatInfo({ ...chatInfo, chatId: finalChatId, chatExists: true });
                     socket.emit("join_chat", finalChatId);
-
                     setChatId(finalChatId);
                     navigate(`/msg/${finalChatId}`, { replace: true });
 
@@ -735,11 +445,8 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
         }
     };
 
-
-
-    const sendMessage = useCallback(async () => {
-        const currentText = text;
-        if (!socket || !currentText.trim() || !chatId || !user) return;
+    const sendMessage = async () => {
+        if (!socket || !text.trim() || !chatId) return;
 
         let finalChatId = chatId;
 
@@ -749,7 +456,6 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                 finalChatId = res.data.chatId;
                 setChatInfo({ ...chatInfo, chatId: finalChatId, chatExists: true });
                 socket.emit("join_chat", finalChatId);
-
                 setChatId(finalChatId);
                 navigate(`/msg/${finalChatId}`, { replace: true });
             } catch (err) {
@@ -758,90 +464,9 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
             }
         }
 
-        const messageText = currentText.trim();
+        socket.emit("send_message", { chatId: finalChatId, text });
         setText("");
-
-        // Оптимистичное обновление - добавляем сообщение сразу
-        const optimisticMessage: Message = {
-            id: Date.now(), // Временный ID
-            chat_id: finalChatId,
-            user_id: user.id,
-            username: user.login || user.name || '',
-            name: user.name || '',
-            text: messageText,
-            timestamp: new Date().toISOString(),
-            is_read: false,
-            message_type: 'text' as const,
-            avatar: user.avatar || undefined
-        };
-
-        setMessages((prev) => [...prev, optimisticMessage]);
-        
-        // Мгновенный скролл к новому сообщению
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                if (messagesContainerRef.current) {
-                    const container = messagesContainerRef.current;
-                    const maxScroll = container.scrollHeight - container.clientHeight;
-                    container.scrollTop = maxScroll;
-                } else {
-                    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-                }
-            });
-        });
-
-        // Retry логика для отправки сообщения
-        let attempts = 0;
-        const maxAttempts = 3;
-        const sendWithRetry = () => {
-            if (attempts >= maxAttempts) {
-                console.error("Failed to send message after", maxAttempts, "attempts");
-                // Удаляем оптимистичное сообщение при ошибке
-                setMessages((prev) => prev.filter(m => m.id !== optimisticMessage.id));
-                setText(messageText); // Восстанавливаем текст
-                return;
-            }
-            
-            attempts++;
-            try {
-                socket.emit("send_message", { chatId: finalChatId, text: messageText });
-            } catch (err) {
-                console.error("Error sending message, retrying...", err);
-                setTimeout(sendWithRetry, 500 * attempts);
-            }
-        };
-        
-        sendWithRetry();
-    }, [socket, chatId, user, chatInfo, navigate, setChatId, text]);
-    
-    // Стабильная функция для onChange
-    const handleTextChange = useCallback((value: string) => {
-        setText(value);
-        // Сохраняем текст в ref для текущего чата
-        if (chatId) {
-            chatTextsRef.current[chatId] = value;
-        }
-    }, [chatId]);
-
-    // Подготовка данных для отображения сообщений
-    const messageItems = useMemo(() => {
-        const items: MessageItem[] = [];
-        const firstUnreadIndex = messages.findIndex((msg) => !msg.is_read && msg.user_id !== user?.id);
-        
-        messages.forEach((msg, index) => {
-            const prevMessage = index > 0 ? messages[index - 1] : null;
-            const showDateDivider = index === 0 || (prevMessage !== null && isDifferentDay(msg.timestamp, prevMessage.timestamp));
-            
-            items.push({
-                message: msg,
-                showDateDivider: Boolean(showDateDivider),
-                showUnreadDivider: showUnreadDivider && firstUnreadIndex === index,
-                isFirstUnread: firstUnreadIndex === index
-            });
-        });
-        
-        return items;
-    }, [messages, showUnreadDivider, user?.id]);
+    };
 
     const handleMessageRightClick = (e: React.MouseEvent, messageId: number) => {
         e.preventDefault();
@@ -889,19 +514,8 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
 
     const handleParticipantClick = async (participantUsername: string) => {
         setShowParticipantsModal(false);
-        try {
-            const res = await api.get(`/chats/${participantUsername}`);
-            if (res.data.chatExists) {
-                setChatId(res.data.chatId);
+        // Просто навигируем - Messanger обновит chatId на основе URL
                 navigate(`/msg/${participantUsername}`, { replace: true });
-            } else {
-                // Chat doesn't exist, create it
-                navigate(`/msg/${participantUsername}`, { replace: true });
-                setChatId(participantUsername);
-            }
-        } catch (err) {
-            console.error("Error opening chat with participant:", err);
-        }
     };
 
     const loadParticipants = async (offset: number) => {
@@ -934,16 +548,12 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
         }
     };
 
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (contextMenuRef.current && !contextMenuRef.current.contains(event.target as Node)) {
-                setMessageContextMenu(null);
-            }
-        };
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+    const handleTextChange = (value: string) => {
+        setText(value);
+        if (chatId) {
+            chatTextsRef.current[chatId] = value;
+        }
+    };
 
     if (!chatId) {
         return (
@@ -963,8 +573,8 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                         <div className="h-4 w-24 bg-white/10 rounded animate-pulse"></div>
                     </div>
                 </div>
-                <div className="flex-1 flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                <div className="flex-1 overflow-y-auto px-4">
+                    <MessageListSkeleton count={3} />
                 </div>
             </div>
         );
@@ -986,284 +596,76 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
         );
     }
 
-
     return (
         <div className="w-full h-full bg-secondary-bg text-white flex flex-col">
-            <div
-                className={`bg-primary-bg p-4 border-b border-primary-bdr h-[80px] ${(chatInfo?.chat_type === 'direct' || chatId === 'general') ? 'cursor-pointer hover:bg-[#2a3441]' : ''}`}
-                onClick={(chatInfo?.chat_type === 'direct' || chatId === 'general') ? handleChatHeaderClick : undefined}
-            >
-                <div>
-                    <div className="flex items-center gap-2">
-                        <AnimatePresence mode="wait">
-                            <motion.h2
-                                key={chatId}
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                transition={{ duration: 0.3 }}
-                                className="text-lg font-semibold"
-                            >
-                                {chatInfo.display_name}
-                            </motion.h2>
-                        </AnimatePresence>
-                        {chatInfo?.chat_type === "direct" && chatInfo?.userStats && (
-                            <span className="text-xs text-gray-400">
-                                ({chatInfo.userStats.games_count} игр, {chatInfo.userStats.wins_count} побед)
-                            </span>
-                        )}
-                    </div>
-                    {chatInfo.chat_type === "direct" && (
-                        <AnimatePresence mode="wait">
-                            <motion.p
-                                key={`${chatId}-${lastSeenText}`}
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                transition={{ duration: 0.3 }}
-                                className={`text-sm ${chatInfo.user.is_online ? "text-primary" : "text-white/50"}`}
-                            >
-                                {lastSeenText}
-                            </motion.p>
-                        </AnimatePresence>
-                    )}
-                    {chatId === "general" && (
-                        <p className="text-sm text-white/50">
-                            {chatInfo?.participantsCount || 0} участников • {chatInfo?.onlineCount || 0} онлайн
-                        </p>
-                    )}
+            <ChatHeader
+                chatId={chatId}
+                chatInfo={chatInfo}
+                lastSeenText={lastSeenText}
+                onHeaderClick={handleChatHeaderClick}
+            />
+
+                {isLoadingMessages && messages.length === 0 ? (
+                <div className="flex-1 overflow-y-auto px-4">
+                    <MessageListSkeleton count={3} />
                 </div>
-
-                <AnimatePresence>
-                    {chatInfo.chat_type === "group" && !chatInfo.isParticipant && chatId !== "general" && (
-                        <motion.button
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="mt-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-sm"
-                        >
-                            Присоединиться
-                        </motion.button>
-                    )}
-                </AnimatePresence>
-            </div>
-
-            <div className="messages flex-1 overflow-hidden text-[20px]">
-                <AnimatePresence mode="wait">
-                    {isLoadingMessages && messages.length === 0 ? (
-                        <motion.div
-                            key="loading"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="h-full overflow-y-auto px-4"
-                        >
-                            <MessageListSkeleton count={10} />
-                        </motion.div>
-                    ) : messages.length > 0 ? (
-                        <motion.div
-                            key="messages"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: isScrolling ? 0.3 : 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.2, ease: "easeOut" }}
-                            ref={messagesContainerRef}
-                            className="h-full overflow-y-auto px-4 py-4"
-                            style={{ 
-                                scrollBehavior: isScrolling ? 'auto' : 'smooth',
-                                pointerEvents: isScrolling ? 'none' : 'auto'
-                            }}
-                        >
-                            {messageItems.map((item) => (
-                                <MessageComponent
-                                    key={item.message.id}
-                                    msg={item.message}
-                                    showDateDivider={item.showDateDivider}
-                                    showUnreadDivider={item.showUnreadDivider}
-                                    isFirstUnread={item.isFirstUnread}
-                                    userId={user?.id}
-                                    gameEndInfo={gameEndInfo}
-                                    isInGame={isInGame}
-                                    socket={socket}
-                                    onContextMenu={handleMessageRightClick}
-                                />
-                            ))}
-                            <div ref={messagesEndRef} />
-                        </motion.div>
-                    ) : (
-                        <motion.div
-                            key="empty"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="flex items-center justify-center h-full text-white/40"
-                        >
-                            Нет сообщений
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
-
-            <div className="w-full bg-primary-bg p-4">
-                <form
-                    onSubmit={(e: FormEvent<HTMLFormElement>) => {
-                        e.preventDefault();
-                        if (chatInfo?.canSend) {
-                            sendMessage();
-                        }
-                    }}
-                    className="w-full"
-                >
-                    <div className="w-full flex items-end gap-2">
-                        <div className="flex-1" style={{ display: chatInfo?.canSend ? 'block' : 'none' }}>
-                            <ChatInput
-                                value={text}
-                                onChange={handleTextChange}
-                                onSend={sendMessage}
-                                placeholder="Напишите сообщение..."
-                                disabled={!chatInfo?.canSend}
-                            />
-                        </div>
-                        <div style={{ display: chatInfo?.canSend ? 'block' : 'none' }}>
-                            <button
-                                type="button"
-                                onClick={() => sendGameInvite()}
-                                disabled={isInGame || isInviteSending}
-                                className={`p-3 transition-all duration-200 ${isInGame || isInviteSending
-                                    ? 'cursor-not-allowed bg-gray-500 text-gray-300'
-                                    : 'cursor-pointer bg-primary text-black    hover:bg-amber-600  shadow-lg hover:shadow-amber-500/50'
-                                    }`}
-                                title={isInGame ? 'Вы уже в игре' : 'Пригласить в игру'}
-                            >
-                                <FaGamepad size={24} />
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-
-            <Modal
-                isOpen={showUserSelectModal}
-                onClose={() => {
-                    setShowUserSelectModal(false);
-                    setUserSearchQuery("");
-                }}
-                title="Выберите пользователя"
-            >
-                <div className="w-full">
-                    <input
-                        type="text"
-                        value={userSearchQuery}
-                        onChange={(e) => setUserSearchQuery(e.target.value)}
-                        placeholder="Поиск по имени или логину..."
-                        className="w-full p-2 mb-4 bg-secondary-bg text-white rounded outline-none border border-primary-bdr focus:border-primary transition-colors"
-                    />
-                    <div className="max-h-96 overflow-y-auto">
-                        {availableUsers
-                            .filter(u => u.id !== user?.id)
-                            .filter(u => {
-                                const query = userSearchQuery.toLowerCase();
-                                if (!query) return true;
-                                return (u.name?.toLowerCase().includes(query) ||
-                                    u.login?.toLowerCase().includes(query));
-                            })
-                            .map((userItem) => (
-                                <button
-                                    key={userItem.id}
-                                    onClick={() => sendGameInvite(userItem.id)}
-                                    className="w-full p-3 flex items-center gap-3 hover:bg-secondary-bg rounded transition-colors text-left"
-                                >
-                                    <AvatarWithStatus
-                                        avatar={userItem.avatar}
-                                        name={userItem.name || userItem.login}
-                                        isOnline={onlineUsers.has(userItem.id)}
-                                    />
-                                    <div className="flex-1 min-w-0">
-                                        <div className="font-semibold truncate text-white">{userItem.name}</div>
-                                        <div className="text-sm text-gray-400 truncate">@{userItem.login}</div>
-                                    </div>
-                                </button>
-                            ))}
-                        {availableUsers
-                            .filter(u => u.id !== user?.id)
-                            .filter(u => {
-                                const query = userSearchQuery.toLowerCase();
-                                if (!query) return true;
-                                return (u.name?.toLowerCase().includes(query) ||
-                                    u.login?.toLowerCase().includes(query));
-                            })
-                            .length === 0 && (
-                                <div className="text-center text-gray-400 py-8">
-                                    {userSearchQuery ? 'Пользователи не найдены' : 'Нет доступных пользователей'}
-                                </div>
-                            )}
-                    </div>
-                </div>
-            </Modal>
-
-            {messageContextMenu && (
-                <div
-                    ref={contextMenuRef}
-                    style={{
-                        position: 'fixed',
-                        left: messageContextMenu.x,
-                        top: messageContextMenu.y,
-                        zIndex: 1000,
-                    }}
-                    className="bg-secondary-bg border border-primary-bdr rounded shadow-lg"
-                >
-                    <button
-                        onClick={() => handleCopyMessage(messageContextMenu.messageId)}
-                        className="block w-full px-4 py-2 text-left hover:bg-primary-bg text-white text-sm"
-                    >
-                        Копировать
-                    </button>
-                    {messages.find(m => m.id === messageContextMenu.messageId)?.user_id === user?.id && (
-                        <button
-                            onClick={() => handleDeleteMessage(messageContextMenu.messageId)}
-                            className="block w-full px-4 py-2 text-left hover:bg-red-600 text-white text-sm"
-                        >
-                            Удалить
-                        </button>
-                    )}
-                </div>
+            ) : (
+                <ChatMessages
+                    messages={messages}
+                    showUnreadDivider={showUnreadDivider}
+                    userId={user?.id}
+                    gameEndInfo={gameEndInfo}
+                    isInGame={isInGame}
+                    socket={socket}
+                    onContextMenu={handleMessageRightClick}
+                />
             )}
 
-            <Modal
+            {chatInfo.canSend && (
+                <ChatInputForm
+                    text={text}
+                    onTextChange={handleTextChange}
+                                onSend={sendMessage}
+                    onGameInvite={() => sendGameInvite()}
+                    canSend={chatInfo.canSend}
+                    isInGame={isInGame}
+                    isInviteSending={isInviteSending}
+                />
+            )}
+
+            <UserSelectModal
+                isOpen={showUserSelectModal}
+                onClose={() => setShowUserSelectModal(false)}
+                availableUsers={availableUsers}
+                onlineUsers={onlineUsers}
+                userSearchQuery={userSearchQuery}
+                onSearchChange={setUserSearchQuery}
+                onUserSelect={sendGameInvite}
+                currentUserId={user?.id}
+            />
+
+            {messageContextMenu && (
+                <MessageContextMenu
+                    x={messageContextMenu.x}
+                    y={messageContextMenu.y}
+                    messageId={messageContextMenu.messageId}
+                    onCopy={handleCopyMessage}
+                    onDelete={handleDeleteMessage}
+                    canDelete={messages.find(m => m.id === messageContextMenu.messageId)?.user_id === user?.id}
+                    onClose={() => setMessageContextMenu(null)}
+                />
+            )}
+
+            <ProfileModal
                 isOpen={showProfileModal}
                 onClose={() => {
                     setShowProfileModal(false);
                     setProfileUser(null);
                 }}
-                title={profileUser ? `${profileUser.name} (@${profileUser.login})` : "Профиль"}
-            >
-                {profileUser && (
-                    <div className="text-white">
-                        <div className="flex items-center gap-4 mb-4">
-                            <img
-                                src={getAvatarUrl(profileUser.avatar)}
-                                alt={profileUser.name}
-                                className="w-16 h-16 rounded-full border-2 border-gray-600"
-                            />
-                            <div>
-                                <h3 className="text-xl font-bold">{profileUser.name}</h3>
-                                <p className="text-gray-400">@{profileUser.login}</p>
-                            </div>
-                        </div>
-                        <div className="bg-secondary-bg border border-primary-bdr rounded-lg p-4">
-                            <h4 className="font-semibold text-lg mb-2 text-white">Статистика</h4>
-                            <p className="text-white/70">Игр сыграно: {profileUser.games_count || 0}</p>
-                            <p className="text-white/70">Побед: {profileUser.wins_count || 0}</p>
-                            <p className="text-white/70">Поражений: {(profileUser.games_count || 0) - (profileUser.wins_count || 0)}</p>
-                        </div>
-                    </div>
-                )}
-            </Modal>
+                profileUser={profileUser}
+            />
 
-            <Modal
+            <ParticipantsModal
                 isOpen={showParticipantsModal}
                 onClose={() => {
                     setShowParticipantsModal(false);
@@ -1271,70 +673,16 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                     setParticipantsOffset(0);
                     setParticipantsSearchQuery("");
                 }}
-                title={`Участники General (${participantsTotal})`}
-            >
-                <div className="w-full">
-                    <input
-                        type="text"
-                        value={participantsSearchQuery}
-                        onChange={(e) => setParticipantsSearchQuery(e.target.value)}
-                        placeholder="Поиск по нику или имени..."
-                        className="w-full p-2 mb-4 bg-secondary-bg text-white rounded outline-none border border-primary-bdr focus:border-primary transition-colors"
-                    />
-                    <div
-                        className="max-h-96 overflow-y-auto"
+                participants={participants}
+                participantsTotal={participantsTotal}
+                participantsLoading={participantsLoading}
+                participantsSearchQuery={participantsSearchQuery}
+                onSearchChange={setParticipantsSearchQuery}
                         onScroll={handleParticipantsScroll}
-                    >
-                        {(() => {
-                            const filtered = participants
-                                .filter(participant => participant.id !== user?.id)
-                                .filter(participant => {
-                                    const query = participantsSearchQuery.toLowerCase();
-                                    if (!query) return true;
-                                    return (participant.name?.toLowerCase().includes(query) ||
-                                        participant.login?.toLowerCase().includes(query));
-                                });
-                            
-                            // Сортируем: онлайн вверху
-                            const sorted = [...filtered].sort((a, b) => {
-                                const aOnline = onlineUsers.has(a.id);
-                                const bOnline = onlineUsers.has(b.id);
-                                if (aOnline && !bOnline) return -1;
-                                if (!aOnline && bOnline) return 1;
-                                return 0;
-                            });
-                            
-                            return sorted.map((participant) => (
-                                <div
-                                    key={participant.id}
-                                    onClick={() => handleParticipantClick(participant.login)}
-                                    className="flex items-center gap-3 p-3 hover:bg-secondary-bg rounded transition-colors cursor-pointer"
-                                >
-                                    <AvatarWithStatus
-                                        avatar={participant.avatar}
-                                        name={participant.name || participant.login}
-                                        isOnline={onlineUsers.has(participant.id)}
-                                    />
-                                    <div className="flex-1 min-w-0">
-                                        <div className="font-semibold truncate text-white">{participant.name}</div>
-                                        <div className="text-sm text-white/40 truncate">@{participant.login}</div>
-                                    </div>
-                                </div>
-                            ));
-                        })()}
-                        {participantsLoading && (
-                            <div className="text-center py-4 text-gray-400">
-                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-400 mx-auto"></div>
-                            </div>
-                        )}
-                        {!participantsLoading && participants.filter(p => p.id !== user?.id).length === 0 && (
-                            <div className="text-center py-8 text-gray-400">
-                                Нет участников
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </Modal>
+                onParticipantClick={handleParticipantClick}
+                onlineUsers={onlineUsers}
+                currentUserId={user?.id}
+            />
         </div>
     );
 };

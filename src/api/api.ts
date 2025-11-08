@@ -69,6 +69,9 @@ export const getUser = async (): Promise<User> => {
     const response = await api.get("/auth/me");
     return response.data;
   } catch (error) {
+    if (error instanceof AxiosError && error.response?.status === 403 && error.response?.data?.is_banned) {
+      throw { ...error, isBanned: true, message: error.response.data.message };
+    }
     throw new Error(
       error instanceof AxiosError && error.response?.data?.message
         ? error.response.data.message
@@ -165,5 +168,52 @@ export const getGameProgress = async (gameId: string): Promise<{
         ? error.response.data.message
         : "Ошибка при получении прогресса игры"
     );
+  }
+};
+
+export const deleteAccount = async (): Promise<void> => {
+  try {
+    await api.delete("/users/delete");
+  } catch (error) {
+    throw new Error(
+      error instanceof AxiosError && error.response?.data?.error
+        ? error.response.data.error
+        : "Ошибка при удалении аккаунта"
+    );
+  }
+};
+
+export const adminApi = {
+  getUsers: async () => {
+    const response = await api.get("/admin/users");
+    return response.data;
+  },
+  banUser: async (userId: number) => {
+    const response = await api.post(`/admin/users/${userId}/ban`);
+    return response.data;
+  },
+  unbanUser: async (userId: number) => {
+    const response = await api.post(`/admin/users/${userId}/unban`);
+    return response.data;
+  },
+  getTasks: async () => {
+    const response = await api.get("/admin/tasks");
+    return response.data;
+  },
+  createTask: async (task: any) => {
+    const response = await api.post("/admin/tasks", task);
+    return response.data;
+  },
+  updateTask: async (taskId: number, task: any) => {
+    const response = await api.put(`/admin/tasks/${taskId}`, task);
+    return response.data;
+  },
+  deleteTask: async (taskId: number) => {
+    const response = await api.delete(`/admin/tasks/${taskId}`);
+    return response.data;
+  },
+  getStatistics: async () => {
+    const response = await api.get("/admin/statistics");
+    return response.data;
   }
 };
