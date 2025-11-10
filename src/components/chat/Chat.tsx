@@ -45,6 +45,8 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
     const chatTextsRef = useRef<{ [chatId: string]: string }>({});
     const [isLoadingChatInfo, setIsLoadingChatInfo] = useState(false);
     const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+    const [replyingToMessage, setReplyingToMessage] = useState<Message | null>(null);
+    const [highlightedMessageId, setHighlightedMessageId] = useState<number | null>(null);
 
     const setNullChat = () => {
         setMessages([]);
@@ -53,6 +55,8 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
         setLastSeenText("");
         setIsUserOnline(false);
         setGameEndInfo({});
+        setReplyingToMessage(null);
+        setHighlightedMessageId(null);
         currentChatIdRef.current = null;
     }
 
@@ -277,6 +281,9 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
         // Сохраняем текст текущего чата перед переключением
         if (currentChatIdRef.current && currentChatIdRef.current !== chatId) {
             chatTextsRef.current[currentChatIdRef.current] = text;
+            // Сбрасываем состояние ответа при смене чата
+            setReplyingToMessage(null);
+            setHighlightedMessageId(null);
         }
 
         api
@@ -464,13 +471,39 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
             }
         }
 
-        socket.emit("send_message", { chatId: finalChatId, text });
+        socket.emit("send_message", { 
+            chatId: finalChatId, 
+            text,
+            replyToMessageId: replyingToMessage?.id || undefined
+        });
         setText("");
+        setReplyingToMessage(null);
     };
 
     const handleMessageRightClick = (e: React.MouseEvent, messageId: number) => {
         e.preventDefault();
         setMessageContextMenu({ x: e.clientX, y: e.clientY, messageId });
+        // Highlight the message
+        setHighlightedMessageId(messageId);
+        // Scroll to message if needed
+        setTimeout(() => {
+            const messageElement = document.getElementById(`message-${messageId}`);
+            if (messageElement) {
+                messageElement.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+        }, 50);
+        // Remove highlight after 2 seconds
+        setTimeout(() => {
+            setHighlightedMessageId(null);
+        }, 2000);
+    };
+
+    const handleReplyMessage = (messageId: number) => {
+        const message = messages.find(m => m.id === messageId);
+        if (message && message.message_type === 'text') {
+            setReplyingToMessage(message);
+            setMessageContextMenu(null);
+        }
     };
 
     const handleCopyMessage = async (messageId: number) => {
@@ -618,6 +651,7 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                     isInGame={isInGame}
                     socket={socket}
                     onContextMenu={handleMessageRightClick}
+                    highlightedMessageId={highlightedMessageId}
                 />
             )}
 
@@ -625,11 +659,13 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                 <ChatInputForm
                     text={text}
                     onTextChange={handleTextChange}
-                                onSend={sendMessage}
+                    onSend={sendMessage}
                     onGameInvite={() => sendGameInvite()}
                     canSend={chatInfo.canSend}
                     isInGame={isInGame}
                     isInviteSending={isInviteSending}
+                    replyingToMessage={replyingToMessage}
+                    onCancelReply={() => setReplyingToMessage(null)}
                 />
             )}
 
@@ -651,6 +687,7 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                     messageId={messageContextMenu.messageId}
                     onCopy={handleCopyMessage}
                     onDelete={handleDeleteMessage}
+                    onReply={handleReplyMessage}
                     canDelete={messages.find(m => m.id === messageContextMenu.messageId)?.user_id === user?.id}
                     onClose={() => setMessageContextMenu(null)}
                 />

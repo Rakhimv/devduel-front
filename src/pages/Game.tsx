@@ -4,7 +4,8 @@ import { useAuth } from '../hooks/useAuth';
 import { useGame } from '../context/GameContext';
 import GameInterface from '../components/game/GameInterface';
 import type { GameSession } from '../types/game';
-
+import Spinner from '@/components/effects/Spinner';
+import { motion } from "framer-motion"
 const Game: React.FC = () => {
     const { sessionId } = useParams<{ sessionId: string }>();
     const { user, socket } = useAuth();
@@ -28,12 +29,12 @@ const Game: React.FC = () => {
 
         const handleGameSessionEnd = (data: any) => {
             console.log('game_session_end received:', data);
-            
+
             // Always disconnect player from game
             setIsInGame(false);
             setGameSessionId(null);
             setGameDuration(null);
-            
+
             // If data contains session info (not just reason), update session to show final state with winner
             if (data && data.id && data.status === 'finished') {
                 console.log('Setting game session with finished status:', data);
@@ -45,7 +46,7 @@ const Game: React.FC = () => {
                 console.log('Legacy format or invalid data:', data);
                 setGameSession(null);
                 setLoading(false);
-                
+
                 if (data?.reason === 'player_left') {
                     setError('Другой игрок покинул игру');
                 } else {
@@ -60,7 +61,7 @@ const Game: React.FC = () => {
             setIsInGame(false);
             setGameSessionId(null);
             setGameDuration(null);
-         
+
         };
 
         const handleGameProgressUpdate = (_progress: { playerLevel: number; opponentLevel: number }) => {
@@ -102,10 +103,14 @@ const Game: React.FC = () => {
     if (loading) {
         return (
             <div className="w-full h-screen-calc bg-secondary-bg flex items-center justify-center">
-                <div className="text-center text-white">
-                    <div className="animate-spin w-12 h-12 border-2 border-primary border-t-transparent mx-auto mb-4"></div>
-                    <div>Загрузка игры...</div>
-                </div>
+                <motion.div
+                    className="flex text-primary gap-[10px]"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.8, delay: 3 }}
+                >
+                    Загрузка игры <Spinner />
+                </motion.div>
             </div>
         );
     }

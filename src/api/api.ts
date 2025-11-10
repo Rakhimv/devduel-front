@@ -215,5 +215,9 @@ export const adminApi = {
   getStatistics: async () => {
     const response = await api.get("/admin/statistics");
     return response.data;
+  },
+  testTask: async (taskId: number, languageId: number, code: string) => {
+    const response = await api.post(`/admin/tasks/${taskId}/test`, { languageId, code });
+    return response.data;
   }
 };

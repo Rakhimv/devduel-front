@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { adminApi } from "../api/api";
-import { FaUser, FaTrash, FaEdit, FaPlus, FaBan, FaUnlock, FaUsers, FaTasks, FaTrophy, FaGamepad } from "react-icons/fa";
+import { FaUser, FaTrash, FaEdit, FaPlus, FaBan, FaUnlock, FaUsers, FaTasks, FaTrophy, FaGamepad, FaPlay } from "react-icons/fa";
 
 interface User {
     id: number;
@@ -46,6 +46,11 @@ const Admin = () => {
     const [loading, setLoading] = useState(false);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
     const [showTaskModal, setShowTaskModal] = useState(false);
+    const [testingTask, setTestingTask] = useState<Task | null>(null);
+    const [testLanguage, setTestLanguage] = useState<number>(102);
+    const [testCode, setTestCode] = useState<string>('');
+    const [testResults, setTestResults] = useState<any>(null);
+    const [isTesting, setIsTesting] = useState(false);
     const [taskForm, setTaskForm] = useState({
         title: '',
         description: '',
@@ -331,6 +336,22 @@ const Admin = () => {
                                         </div>
                                         <div className="flex gap-2">
                                             <button
+                                                onClick={() => {
+                                                    setTestingTask(task);
+                                                    const codeTemplates = typeof task.code_templates === 'string' 
+                                                        ? JSON.parse(task.code_templates) 
+                                                        : task.code_templates;
+                                                    const defaultLang = 102;
+                                                    setTestLanguage(defaultLang);
+                                                    setTestCode(codeTemplates[defaultLang] || '');
+                                                    setTestResults(null);
+                                                }}
+                                                className="bg-greenDD text-black px-3 py-1 cursor-pointer hover:bg-green-600"
+                                                title="Тестировать задание"
+                                            >
+                                                <FaPlay />
+                                            </button>
+                                            <button
                                                 onClick={() => handleEditTask(task)}
                                                 className="bg-primary text-black px-3 py-1 cursor-pointer hover:bg-primary/80"
                                             >
@@ -506,6 +527,112 @@ const Admin = () => {
                     </div>
                 )}
             </div>
+
+            {testingTask && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-primary-bg border border-primary-bdr max-w-4xl w-full max-h-[90vh] overflow-auto">
+                        <div className="p-6">
+                            <h2 className="text-2xl font-bold mb-4">Тестирование задания: {testingTask.title}</h2>
+                            
+                            <div className="space-y-4 mb-4">
+                                <div>
+                                    <label className="block text-sm mb-2">Язык программирования</label>
+                                    <select
+                                        value={testLanguage}
+                                        onChange={(e) => {
+                                            const langId = parseInt(e.target.value);
+                                            setTestLanguage(langId);
+                                            const codeTemplates = typeof testingTask.code_templates === 'string' 
+                                                ? JSON.parse(testingTask.code_templates) 
+                                                : testingTask.code_templates;
+                                            setTestCode(codeTemplates[langId] || '');
+                                        }}
+                                        className="w-full bg-secondary-bg border border-primary-bdr text-white px-3 py-2 cursor-pointer"
+                                    >
+                                        <option value={102}>JavaScript</option>
+                                        <option value={109}>Python</option>
+                                        <option value={105}>C++</option>
+                                        <option value={51}>C#</option>
+                                        <option value={107}>Go</option>
+                                        <option value={98}>PHP</option>
+                                        <option value={91}>Java</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm mb-2">Код</label>
+                                    <textarea
+                                        value={testCode}
+                                        onChange={(e) => setTestCode(e.target.value)}
+                                        className="w-full bg-secondary-bg border border-primary-bdr text-white px-3 py-2 h-48 font-mono text-sm"
+                                        placeholder="Введите код для тестирования"
+                                    />
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={async () => {
+                                    if (!testCode.trim()) {
+                                        alert('Введите код для тестирования');
+                                        return;
+                                    }
+                                    setIsTesting(true);
+                                    try {
+                                        const results = await adminApi.testTask(testingTask.id, testLanguage, testCode);
+                                        setTestResults(results);
+                                    } catch (error: any) {
+                                        alert(error.response?.data?.error || 'Ошибка тестирования');
+                                    } finally {
+                                        setIsTesting(false);
+                                    }
+                                }}
+                                disabled={isTesting}
+                                className="bg-primary text-black px-6 py-2 cursor-pointer hover:bg-primary/80 disabled:bg-gray-600 disabled:cursor-not-allowed mb-4"
+                            >
+                                {isTesting ? 'Тестирование...' : 'Запустить тесты'}
+                            </button>
+
+                            {testResults && (
+                                <div className="mt-4 border border-primary-bdr p-4">
+                                    <h3 className="text-lg font-semibold mb-2">
+                                        Результаты: {testResults.passed}/{testResults.total} тестов пройдено
+                                    </h3>
+                                    <div className={`text-lg font-bold mb-4 ${testResults.success ? 'text-greenDD' : 'text-redDD'}`}>
+                                        {testResults.success ? '✓ Все тесты пройдены' : '✗ Некоторые тесты не пройдены'}
+                                    </div>
+                                    <div className="space-y-2">
+                                        {testResults.results.map((result: any, index: number) => (
+                                            <div key={index} className={`p-3 border ${result.passed ? 'border-greenDD bg-greenDD/10' : 'border-redDD bg-redDD/10'}`}>
+                                                <div className="font-semibold mb-1">
+                                                    Тест {index + 1}: {result.passed ? '✓ Пройден' : '✗ Не пройден'}
+                                                </div>
+                                                <div className="text-sm text-white/80">
+                                                    <div>Вход: <code className="bg-primary-bg px-1">{result.input}</code></div>
+                                                    <div>Ожидалось: <code className="bg-primary-bg px-1">{result.expected}</code></div>
+                                                    <div>Получено: <code className="bg-primary-bg px-1">{result.output}</code></div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="flex gap-4 mt-6">
+                                <button
+                                    onClick={() => {
+                                        setTestingTask(null);
+                                        setTestCode('');
+                                        setTestResults(null);
+                                    }}
+                                    className="bg-secondary-bg border border-primary-bdr text-white px-6 py-2 cursor-pointer hover:bg-primary-bg"
+                                >
+                                    Закрыть
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

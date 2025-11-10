@@ -55,12 +55,13 @@ const Profile: React.FC = () => {
     }
   };
 
+
+
   const handleDeleteAccount = async () => {
     if (deleteConfirm !== user?.login) {
       handleError('Подтверждение не совпадает с вашим логином');
       return;
     }
-
     setIsDeleting(true);
     try {
       await deleteAccount();
@@ -71,6 +72,8 @@ const Profile: React.FC = () => {
       setIsDeleting(false);
     }
   };
+
+
 
   const winRate = user?.games_count && user.games_count > 0 
     ? Math.round((user.wins_count || 0) / user.games_count * 100) 

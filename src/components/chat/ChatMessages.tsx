@@ -21,6 +21,7 @@ interface ChatMessagesProps {
     isInGame: boolean;
     socket: any;
     onContextMenu: (e: React.MouseEvent, messageId: number) => void;
+    highlightedMessageId?: number | null;
 }
 
 const MessageComponent = React.memo(({ 
@@ -32,7 +33,9 @@ const MessageComponent = React.memo(({
     gameEndInfo,
     isInGame,
     socket,
-    onContextMenu
+    onContextMenu,
+    highlightedMessageId,
+    onReplyClick
 }: {
     msg: Message;
     showDateDivider: boolean;
@@ -43,9 +46,12 @@ const MessageComponent = React.memo(({
     isInGame: boolean;
     socket: any;
     onContextMenu: (e: React.MouseEvent, messageId: number) => void;
+    highlightedMessageId?: number | null;
+    onReplyClick?: (messageId: number) => void;
 }) => {
-    const ref = useRef(null);
+    const ref = useRef<HTMLDivElement>(null);
     const isInView = useInView(ref, { once: true, margin: "-100px" });
+    const isHighlighted = highlightedMessageId === msg.id;
 
     return (
         <>
@@ -67,11 +73,18 @@ const MessageComponent = React.memo(({
 
             <motion.div
                 ref={ref}
+                id={`message-${msg.id}`}
                 initial={{ opacity: 0 }}
-                animate={isInView ? { opacity: 1 } : { opacity: 0 }}
+                animate={isInView ? { opacity: 1, scale: isHighlighted ? 1.02 : 1 } : { opacity: 0 }}
                 transition={{ ease: "easeInOut", duration: 0.3 }}
-                className="mb-2 flex items-end gap-2 relative"
+                className={`mb-2 flex items-end gap-2 relative ${isHighlighted ? 'opacity-90' : ''}`}
                 onContextMenu={(e: any) => onContextMenu(e, msg.id)}
+                style={{
+                    backgroundColor: isHighlighted ? 'rgba(255, 193, 7, 0.1)' : 'transparent',
+                    borderRadius: isHighlighted ? '8px' : '0',
+                    padding: isHighlighted ? '4px' : '0',
+                    transition: 'all 0.3s ease'
+                }}
             >
                 <img 
                     src={getAvatarUrl(msg.avatar)}
@@ -80,6 +93,22 @@ const MessageComponent = React.memo(({
                 />
                 <div className="bg-primary-bg max-w-[600px] relative p-[10px] py-[10px]">
                     <div className="absolute left-[-8px] bottom-0 w-0 h-0 border-t-[8px] border-t-transparent border-r-[8px] border-r-primary-bg border-b-[8px] border-b-transparent"></div>
+                    
+                    {msg.reply_to_message && (
+                        <div 
+                            className="mb-2 pl-3 border-l-2 border-primary cursor-pointer hover:bg-white/5 transition-colors"
+                            onClick={() => onReplyClick?.(msg.reply_to_message!.id)}
+                        >
+                            <div className="text-xs text-primary mb-1">
+                                {msg.reply_to_message.name || msg.reply_to_message.username}
+                            </div>
+                            <div className="text-xs text-white/60 truncate">
+                                {msg.reply_to_message.message_type === 'game_invite' 
+                                    ? '🎮 Приглашение в игру' 
+                                    : msg.reply_to_message.text}
+                            </div>
+                        </div>
+                    )}
                     
                     {msg.message_type === 'game_invite' && msg.game_invite_data ? (
                         <div>
@@ -132,7 +161,7 @@ const MessageComponent = React.memo(({
                         <span className="text-[14px] text-white/40">{new Date(msg.timestamp).toLocaleTimeString().slice(0, 5)}</span>
                         {msg.user_id === userId && (
                             <span className={`text-xs ${msg.is_read ? 'text-primary' : 'text-white/60'}`}>
-                                {msg.is_read ? <IoCheckmarkDoneSharp /> : <IoCheckmarkSharp />}
+                                {msg.is_read ? <IoCheckmarkDoneSharp size={18} /> : <IoCheckmarkSharp size={18} />}
                             </span>
                         )}
                     </div>
@@ -151,7 +180,8 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
     gameEndInfo,
     isInGame,
     socket,
-    onContextMenu
+    onContextMenu,
+    highlightedMessageId
 }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -160,6 +190,30 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
+
+    // Scroll to highlighted message
+    useEffect(() => {
+        if (highlightedMessageId) {
+            const messageElement = document.getElementById(`message-${highlightedMessageId}`);
+            if (messageElement) {
+                setTimeout(() => {
+                    messageElement.scrollIntoView({ behavior: "smooth", block: "center" });
+                }, 100);
+            }
+        }
+    }, [highlightedMessageId]);
+
+    const handleReplyClick = (messageId: number) => {
+        const messageElement = document.getElementById(`message-${messageId}`);
+        if (messageElement) {
+            messageElement.scrollIntoView({ behavior: "smooth", block: "center" });
+            // Temporarily highlight the replied message
+            messageElement.style.backgroundColor = 'rgba(255, 193, 7, 0.2)';
+            setTimeout(() => {
+                messageElement.style.backgroundColor = '';
+            }, 2000);
+        }
+    };
 
     // Подготовка данных для отображения сообщений
     const messageItems: MessageItem[] = [];
@@ -202,6 +256,8 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
                                 isInGame={isInGame}
                                 socket={socket}
                                 onContextMenu={onContextMenu}
+                                highlightedMessageId={highlightedMessageId}
+                                onReplyClick={handleReplyClick}
                             />
                         ))}
                         <div ref={messagesEndRef} />

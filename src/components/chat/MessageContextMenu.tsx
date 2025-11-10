@@ -6,6 +6,7 @@ interface MessageContextMenuProps {
     messageId: number;
     onCopy: (messageId: number) => void;
     onDelete: (messageId: number) => void;
+    onReply: (messageId: number) => void;
     canDelete: boolean;
     onClose: () => void;
 }
@@ -16,6 +17,7 @@ const MessageContextMenu: React.FC<MessageContextMenuProps> = ({
     messageId,
     onCopy,
     onDelete,
+    onReply,
     canDelete,
     onClose
 }) => {
@@ -43,6 +45,12 @@ const MessageContextMenu: React.FC<MessageContextMenuProps> = ({
             }}
             className="bg-secondary-bg border border-primary-bdr shadow-lg"
         >
+            <button
+                onClick={() => onReply(messageId)}
+                className="block w-full px-4 py-2 text-left hover:bg-primary-bg text-white text-sm cursor-pointer"
+            >
+                Ответить
+            </button>
             <button
                 onClick={() => onCopy(messageId)}
                 className="block w-full px-4 py-2 text-left hover:bg-primary-bg text-white text-sm cursor-pointer"

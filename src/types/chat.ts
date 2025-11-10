@@ -25,6 +25,16 @@ export interface Message {
   timestamp: string;
   is_read: boolean;
   message_type?: 'text' | 'game_invite';
+  reply_to_message_id?: number | null;
+  reply_to_message?: {
+    id: number;
+    text: string;
+    user_id: number;
+    username: string;
+    name?: string;
+    avatar?: string;
+    message_type?: 'text' | 'game_invite';
+  } | null;
   game_invite_data?: {
     invite_id: string;
     from_user_id: number;
