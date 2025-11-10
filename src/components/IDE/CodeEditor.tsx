@@ -1,6 +1,6 @@
 import Editor, { loader } from "@monaco-editor/react";
 import * as monaco from "monaco-editor";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useCode } from "../../context/CodeContext";
 import { submitTaskSolution, getTaskTemplate } from "../../api/api";
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
@@ -28,26 +28,122 @@ export default function CodeIDE({ gameId, taskId, onTaskSubmitted }: CodeEditorP
   const { code, language, setCode, setLanguage } = useCode();
   const [output, setOutput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const prevTaskIdRef = useRef<number | undefined>(undefined);
+  const prevLanguageRef = useRef<string | undefined>(undefined);
+  const prevGameIdRef = useRef<string | undefined>(undefined);
+
+  const getStorageKey = (gameIdValue: string | undefined, taskIdValue: number | undefined, lang: string) => {
+    if (!taskIdValue) return null;
+    return `gameCode_${gameIdValue || 'default'}_${taskIdValue}_${lang}`;
+  };
+
+  const saveCodeToStorage = (gameIdValue: string | undefined, taskIdValue: number | undefined, lang: string, codeToSave: string) => {
+    const key = getStorageKey(gameIdValue, taskIdValue, lang);
+    if (key) {
+      localStorage.setItem(key, codeToSave);
+    }
+  };
+
+  const loadCodeFromStorage = (gameIdValue: string | undefined, taskIdValue: number | undefined, lang: string): string | null => {
+    const key = getStorageKey(gameIdValue, taskIdValue, lang);
+    if (key) {
+      return localStorage.getItem(key);
+    }
+    return null;
+  };
+
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isInitializingRef = useRef(false);
+  
+  useEffect(() => {
+    if (!taskId || isInitializingRef.current) return;
+
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    saveTimeoutRef.current = setTimeout(() => {
+      saveCodeToStorage(gameId, taskId, language, code);
+      saveTimeoutRef.current = null;
+    }, 500);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [code, taskId, language, gameId]);
 
   useEffect(() => {
-    if (taskId && language) {
-      loadTaskTemplate();
-      setOutput("");
+    return () => {
+      if (taskId && language && code) {
+        saveCodeToStorage(gameId, taskId, language, code);
+      }
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [taskId, language, code, gameId]);
+
+  useEffect(() => {
+    if (!taskId || !language) {
+      return;
     }
-  }, [taskId, language]);
+
+    const taskChanged = prevTaskIdRef.current !== taskId;
+    const languageChanged = prevLanguageRef.current !== language;
+    const gameChanged = prevGameIdRef.current !== gameId;
+
+    if (!taskChanged && !languageChanged && !gameChanged && prevTaskIdRef.current !== undefined) {
+      return;
+    }
+
+    isInitializingRef.current = true;
+
+    if (prevTaskIdRef.current !== undefined && prevLanguageRef.current && (taskChanged || languageChanged || gameChanged)) {
+      const prevGameId = prevGameIdRef.current || gameId;
+      saveCodeToStorage(prevGameId, prevTaskIdRef.current, prevLanguageRef.current, code);
+    }
+
+    const savedCode = loadCodeFromStorage(gameId, taskId, language);
+    
+    if (savedCode) {
+      setCode(savedCode);
+      isInitializingRef.current = false;
+    } else {
+      loadTaskTemplate().finally(() => {
+        isInitializingRef.current = false;
+      });
+    }
+    
+    prevTaskIdRef.current = taskId;
+    prevLanguageRef.current = language;
+    prevGameIdRef.current = gameId;
+    setOutput("");
+  }, [taskId, language, gameId]);
 
   const handleLanguageChange = async (newLanguage: string) => {
+    if (taskId) {
+      saveCodeToStorage(gameId, taskId, language, code);
+    }
+    
     setLanguage(newLanguage);
     
     if (taskId && newLanguage) {
-      try {
-        const templateData = await getTaskTemplate(taskId, newLanguage);
-        setCode(templateData.template);
-      } catch (error) {
-        console.error("Failed to load task template:", error);
-        const lang = languages.find(l => l.name === newLanguage);
-        if (lang) {
-          setCode(lang.defaultCode);
+      const savedCode = loadCodeFromStorage(gameId, taskId, newLanguage);
+      
+      if (savedCode) {
+        setCode(savedCode);
+      } else {
+        try {
+          const templateData = await getTaskTemplate(taskId, newLanguage);
+          setCode(templateData.template);
+        } catch (error) {
+          console.error("Failed to load task template:", error);
+          const lang = languages.find(l => l.name === newLanguage);
+          if (lang) {
+            setCode(lang.defaultCode);
+          }
         }
       }
     }
@@ -56,14 +152,26 @@ export default function CodeIDE({ gameId, taskId, onTaskSubmitted }: CodeEditorP
   const loadTaskTemplate = async () => {
     if (!taskId || !language) return;
     
+    const savedCode = loadCodeFromStorage(gameId, taskId, language);
+    if (savedCode) {
+      setCode(savedCode);
+      return;
+    }
+    
     try {
       const templateData = await getTaskTemplate(taskId, language);
-      setCode(templateData.template);
+      const finalSavedCode = loadCodeFromStorage(gameId, taskId, language);
+      if (!finalSavedCode) {
+        setCode(templateData.template);
+      }
     } catch (error) {
       console.error("Failed to load task template:", error);
       const lang = languages.find(l => l.name === language);
       if (lang) {
-        setCode(lang.defaultCode);
+        const finalSavedCode = loadCodeFromStorage(gameId, taskId, language);
+        if (!finalSavedCode) {
+          setCode(lang.defaultCode);
+        }
       }
     }
   };
@@ -135,7 +243,6 @@ export default function CodeIDE({ gameId, taskId, onTaskSubmitted }: CodeEditorP
   };
 
   const handleEditorWillMount = (monaco: typeof import('monaco-editor')) => {
-    // Настройка кастомной темы Monaco Editor с primary цветом
     monaco.editor.defineTheme('custom-dark', {
       base: 'vs-dark',
       inherit: true,
@@ -219,7 +326,9 @@ export default function CodeIDE({ gameId, taskId, onTaskSubmitted }: CodeEditorP
               language={language}
               theme="custom-dark"
               value={code}
-              onChange={(val) => setCode(val || "")}
+              onChange={(val) => {
+                setCode(val || "");
+              }}
               beforeMount={handleEditorWillMount}
               options={{
                 minimap: { enabled: true },

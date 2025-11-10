@@ -1,7 +1,7 @@
-import React, { type FormEvent } from "react";
+import { type FormEvent, useRef, useEffect, useImperativeHandle, forwardRef } from "react";
 import { FaGamepad } from "react-icons/fa";
 import { IoClose } from "react-icons/io5";
-import ChatInput from "../ui/ChatInput";
+import ChatInput, { type ChatInputRef } from "../ui/ChatInput";
 import type { Message } from "../../types/chat";
 
 interface ChatInputFormProps {
@@ -16,7 +16,11 @@ interface ChatInputFormProps {
     onCancelReply: () => void;
 }
 
-const ChatInputForm: React.FC<ChatInputFormProps> = ({
+export interface ChatInputFormRef {
+    focus: () => void;
+}
+
+const ChatInputForm = forwardRef<ChatInputFormRef, ChatInputFormProps>(({
     text,
     onTextChange,
     onSend,
@@ -26,7 +30,25 @@ const ChatInputForm: React.FC<ChatInputFormProps> = ({
     isInviteSending,
     replyingToMessage,
     onCancelReply
-}) => {
+}, ref) => {
+    const inputRef = useRef<ChatInputRef>(null);
+
+    useImperativeHandle(ref, () => ({
+        focus: () => {
+            if (canSend && inputRef.current) {
+                inputRef.current.focus();
+            }
+        }
+    }));
+
+    useEffect(() => {
+        if (replyingToMessage && inputRef.current) {
+            setTimeout(() => {
+                inputRef.current?.focus();
+            }, 100);
+        }
+    }, [replyingToMessage]);
+
     return (
         <div className="w-full relative z-[20] bg-primary-bg border-t border-primary-bdr">
             {replyingToMessage && (
@@ -42,7 +64,7 @@ const ChatInputForm: React.FC<ChatInputFormProps> = ({
                     <button
                         type="button"
                         onClick={onCancelReply}
-                        className="flex-shrink-0 p-1 hover:bg-white/10 rounded transition-colors"
+                        className="flex-shrink-0 cursor-pointer p-1 hover:bg-white/10 rounded transition-colors"
                         title="Отменить ответ"
                     >
                         <IoClose size={20} className="text-white/60" />
@@ -62,6 +84,7 @@ const ChatInputForm: React.FC<ChatInputFormProps> = ({
                     <div className="w-full flex items-end gap-2">
                         <div className="flex-1" style={{ display: canSend ? 'block' : 'none' }}>
                             <ChatInput
+                                ref={inputRef}
                                 value={text}
                                 onChange={onTextChange}
                                 onSend={onSend}
@@ -89,7 +112,9 @@ const ChatInputForm: React.FC<ChatInputFormProps> = ({
             </div>
         </div>
     );
-};
+});
+
+ChatInputForm.displayName = 'ChatInputForm';
 
 export default ChatInputForm;
 

@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from "react";
+import { motion } from "framer-motion";
 
 interface MessageContextMenuProps {
     x: number;
@@ -30,42 +31,68 @@ const MessageContextMenu: React.FC<MessageContextMenuProps> = ({
             }
         };
 
+        const handleEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                onClose();
+            }
+        };
+
         document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
+        document.addEventListener('keydown', handleEscape);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('keydown', handleEscape);
+        };
     }, [onClose]);
 
     return (
-        <div
+        <motion.div
             ref={menuRef}
+            initial={{ opacity: 0, scale: 0.95, y: -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: -10 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
             style={{
                 position: 'fixed',
                 left: x,
                 top: y,
                 zIndex: 1000,
             }}
-            className="bg-secondary-bg border border-primary-bdr shadow-lg"
+            className="bg-secondary-bg border border-primary-bdr shadow-2xl min-w-[160px] overflow-hidden rounded-sm"
         >
-            <button
-                onClick={() => onReply(messageId)}
-                className="block w-full px-4 py-2 text-left hover:bg-primary-bg text-white text-sm cursor-pointer"
-            >
-                Ответить
-            </button>
-            <button
-                onClick={() => onCopy(messageId)}
-                className="block w-full px-4 py-2 text-left hover:bg-primary-bg text-white text-sm cursor-pointer"
-            >
-                Копировать
-            </button>
-            {canDelete && (
-                <button
-                    onClick={() => onDelete(messageId)}
-                    className="block w-full px-4 py-2 text-left hover:bg-red-600 text-white text-sm cursor-pointer"
+                <motion.button
+                    whileHover={{ backgroundColor: 'rgba(131, 214, 197, 0.1)' }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                        onReply(messageId);
+                    }}
+                    className="block w-full px-4 py-2.5 text-left text-white text-sm cursor-pointer transition-colors border-b border-primary-bdr/50 hover:text-primary"
                 >
-                    Удалить
-                </button>
-            )}
-        </div>
+                    Ответить
+                </motion.button>
+                <motion.button
+                    whileHover={{ backgroundColor: 'rgba(131, 214, 197, 0.1)' }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                        onCopy(messageId);
+                    }}
+                    className="block w-full px-4 py-2.5 text-left text-white text-sm cursor-pointer transition-colors border-b border-primary-bdr/50 hover:text-primary"
+                >
+                    Копировать
+                </motion.button>
+                {canDelete && (
+                    <motion.button
+                        whileHover={{ backgroundColor: 'rgba(244, 97, 97, 0.2)' }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => {
+                            onDelete(messageId);
+                        }}
+                        className="block w-full px-4 py-2.5 text-left text-red-500 text-sm cursor-pointer transition-colors hover:text-red-400"
+                    >
+                        Удалить
+                    </motion.button>
+                )}
+        </motion.div>
     );
 };
 

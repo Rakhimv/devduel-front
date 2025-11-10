@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { adminApi } from "../api/api";
-import { FaUser, FaTrash, FaEdit, FaPlus, FaBan, FaUnlock, FaUsers, FaTasks, FaTrophy, FaGamepad, FaPlay } from "react-icons/fa";
+import { FaTrash, FaEdit, FaPlus, FaBan, FaUnlock, FaUsers, FaTasks, FaGamepad, FaPlay } from "react-icons/fa";
 
 interface User {
     id: number;

@@ -128,8 +128,12 @@ const GameInvite: React.FC<GameInviteProps> = ({ invite, onAccept, onDecline, is
 
   return (
     <div className="bg-transparent p-0">
-      <div className="flex items-center gap-2 mb-2">
+      <div className="flex items-center justify-center mb-3 gap-3">
+        <AvatarWithStatus avatar={invite.fromAvatar} name={invite.fromName || invite.fromUsername} />
         <span className="text-2xl">🎮</span>
+        <AvatarWithStatus avatar={invite.toAvatar} name={invite.toName || invite.toUsername} />
+      </div>
+      <div className="flex items-center gap-2 mb-2">
         <span className="text-sm text-white/70">Приглашение в игру</span>
       </div>
       <p className="text-sm text-white/90 mb-3">

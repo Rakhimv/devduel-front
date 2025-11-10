@@ -10,7 +10,6 @@ const GameStatusBanner: React.FC = () => {
   const location = useLocation();
   const [isValidSession, setIsValidSession] = useState(true);
 
-  // Validate session on mount
   useEffect(() => {
     if (gameSessionId && socket) {
       const validateSession = () => {

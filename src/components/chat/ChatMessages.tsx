@@ -22,13 +22,12 @@ interface ChatMessagesProps {
     socket: any;
     onContextMenu: (e: React.MouseEvent, messageId: number) => void;
     highlightedMessageId?: number | null;
+    chatId?: string | null;
 }
 
-const MessageComponent = React.memo(({ 
-    msg, 
-    showDateDivider, 
-    showUnreadDivider, 
-    isFirstUnread,
+const MessageComponent = React.memo(({
+    msg,
+    showDateDivider,
     userId,
     gameEndInfo,
     isInGame,
@@ -64,12 +63,12 @@ const MessageComponent = React.memo(({
                     <div className="flex-1 h-px bg-white/20"></div>
                 </div>
             )}
-            
+            {/*             
             {showUnreadDivider && isFirstUnread && (
                 <div className="my-2 border-t border-red-500 text-red-500 text-center">
                     Непрочитанные сообщения
                 </div>
-            )}
+            )} */}
 
             <motion.div
                 ref={ref}
@@ -80,36 +79,20 @@ const MessageComponent = React.memo(({
                 className={`mb-2 flex items-end gap-2 relative ${isHighlighted ? 'opacity-90' : ''}`}
                 onContextMenu={(e: any) => onContextMenu(e, msg.id)}
                 style={{
-                    backgroundColor: isHighlighted ? 'rgba(255, 193, 7, 0.1)' : 'transparent',
-                    borderRadius: isHighlighted ? '8px' : '0',
+                    backgroundColor: isHighlighted ? '#00ffcb0f' : 'transparent',
                     padding: isHighlighted ? '4px' : '0',
                     transition: 'all 0.3s ease'
                 }}
             >
-                <img 
+                <img
                     src={getAvatarUrl(msg.avatar)}
                     alt={msg.name || msg.username}
                     className="w-[40px] h-[40px] rounded-full object-cover border-2 border-primary-bdr flex-shrink-0"
                 />
                 <div className="bg-primary-bg max-w-[600px] relative p-[10px] py-[10px]">
                     <div className="absolute left-[-8px] bottom-0 w-0 h-0 border-t-[8px] border-t-transparent border-r-[8px] border-r-primary-bg border-b-[8px] border-b-transparent"></div>
-                    
-                    {msg.reply_to_message && (
-                        <div 
-                            className="mb-2 pl-3 border-l-2 border-primary cursor-pointer hover:bg-white/5 transition-colors"
-                            onClick={() => onReplyClick?.(msg.reply_to_message!.id)}
-                        >
-                            <div className="text-xs text-primary mb-1">
-                                {msg.reply_to_message.name || msg.reply_to_message.username}
-                            </div>
-                            <div className="text-xs text-white/60 truncate">
-                                {msg.reply_to_message.message_type === 'game_invite' 
-                                    ? '🎮 Приглашение в игру' 
-                                    : msg.reply_to_message.text}
-                            </div>
-                        </div>
-                    )}
-                    
+
+
                     {msg.message_type === 'game_invite' && msg.game_invite_data ? (
                         <div>
                             <div className="text-xs text-white/60 mb-1">{msg.name || msg.username}</div>
@@ -152,6 +135,21 @@ const MessageComponent = React.memo(({
                     ) : (
                         <>
                             <div className="text-xs text-white/60 mb-1">{msg.name || msg.username}</div>
+                            {msg.reply_to_message && (
+                                <div
+                                    className="mb-2 pl-3 p-2 border-l-2 border-primary cursor-pointer bg-white/5 hover:bg-white/10 transition-colors"
+                                    onClick={() => onReplyClick?.(msg.reply_to_message!.id)}
+                                >
+                                    <div className="text-xs text-primary mb-1">
+                                        {msg.reply_to_message.name || msg.reply_to_message.username}
+                                    </div>
+                                    <div className="text-xs text-white/60 truncate">
+                                        {msg.reply_to_message.message_type === 'game_invite'
+                                            ? '🎮 Приглашение в игру'
+                                            : msg.reply_to_message.text}
+                                    </div>
+                                </div>
+                            )}
                             <div className="w-full mr-[80px]">
                                 <p className="text-sm break-words">{msg.text}</p>
                             </div>
@@ -181,48 +179,98 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
     isInGame,
     socket,
     onContextMenu,
-    highlightedMessageId
+    highlightedMessageId,
+    chatId
 }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const messagesContainerRef = useRef<HTMLDivElement>(null);
+    const wasAtBottomRef = useRef(true);
+    const isInitialLoadRef = useRef(true);
+    const prevChatIdRef = useRef<string | null | undefined>(chatId);
 
-    // Простой автоскролл при изменении сообщений
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
+        if (prevChatIdRef.current !== chatId) {
+            isInitialLoadRef.current = true;
+            wasAtBottomRef.current = true;
+            prevChatIdRef.current = chatId;
+        }
+    }, [chatId]);
 
-    // Scroll to highlighted message
+    const checkIfAtBottom = () => {
+        if (!messagesContainerRef.current) return false;
+        const container = messagesContainerRef.current;
+        const threshold = 100;
+        return container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+    };
+
     useEffect(() => {
-        if (highlightedMessageId) {
-            const messageElement = document.getElementById(`message-${highlightedMessageId}`);
-            if (messageElement) {
-                setTimeout(() => {
-                    messageElement.scrollIntoView({ behavior: "smooth", block: "center" });
-                }, 100);
+        const container = messagesContainerRef.current;
+        if (!container) return;
+
+        const handleScroll = () => {
+            wasAtBottomRef.current = checkIfAtBottom();
+            if (isInitialLoadRef.current) {
+                isInitialLoadRef.current = false;
+            }
+        };
+
+        container.addEventListener('scroll', handleScroll, { passive: true });
+        wasAtBottomRef.current = checkIfAtBottom();
+
+        return () => {
+            container.removeEventListener('scroll', handleScroll);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (messages.length === 0) {
+            isInitialLoadRef.current = true;
+            return;
+        }
+
+        const shouldScroll = isInitialLoadRef.current || wasAtBottomRef.current;
+
+        if (shouldScroll && messagesContainerRef.current) {
+            const container = messagesContainerRef.current;
+            const scrollToBottom = () => {
+                if (container) {
+                    container.scrollTop = container.scrollHeight;
+                    requestAnimationFrame(() => {
+                        if (container.scrollTop < container.scrollHeight - container.clientHeight - 10) {
+                            container.scrollTop = container.scrollHeight;
+                        }
+                    });
+                }
+            };
+
+            setTimeout(scrollToBottom, 50);
+            setTimeout(scrollToBottom, 200);
+
+            if (isInitialLoadRef.current) {
+                isInitialLoadRef.current = false;
+                wasAtBottomRef.current = true;
             }
         }
-    }, [highlightedMessageId]);
+    }, [messages]);
 
     const handleReplyClick = (messageId: number) => {
         const messageElement = document.getElementById(`message-${messageId}`);
         if (messageElement) {
             messageElement.scrollIntoView({ behavior: "smooth", block: "center" });
-            // Temporarily highlight the replied message
-            messageElement.style.backgroundColor = 'rgba(255, 193, 7, 0.2)';
+            messageElement.style.backgroundColor = '#00ffcb0f';
             setTimeout(() => {
                 messageElement.style.backgroundColor = '';
             }, 2000);
         }
     };
 
-    // Подготовка данных для отображения сообщений
     const messageItems: MessageItem[] = [];
     const firstUnreadIndex = messages.findIndex((msg) => !msg.is_read && msg.user_id !== userId);
-    
+
     messages.forEach((msg, index) => {
         const prevMessage = index > 0 ? messages[index - 1] : null;
         const showDateDivider = index === 0 || (prevMessage !== null && isDifferentDay(msg.timestamp, prevMessage.timestamp));
-        
+
         messageItems.push({
             message: msg,
             showDateDivider: Boolean(showDateDivider),

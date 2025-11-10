@@ -12,7 +12,6 @@ type ChatListProps = {
   setChatId: Dispatch<SetStateAction<string | null>>;
 };
 
-// Мемоизированный компонент элемента чата
 const ChatItem = memo(({ 
   chat, 
   isActive, 
@@ -76,7 +75,6 @@ const ChatItem = memo(({
 
 ChatItem.displayName = 'ChatItem';
 
-// Мемоизированный компонент элемента поиска
 const SearchItem = memo(({ 
   user, 
   isOnline, 
@@ -237,11 +235,11 @@ const ChatList: React.FC<ChatListProps> = ({ setChatId }) => {
     }
   }, []);
 
-  const handleSearch = useCallback(async () => {
+  const handleSearch = useCallback(async (query: string) => {
     try {
-      if (searchText.length > 2) {
+      if (query.length > 2) {
         setIsSearching(true);
-        const res = await api.get(`/chats/search?query=${searchText}`);
+        const res = await api.get(`/chats/search?query=${query}`);
         setSearchResults(res.data);
       } else {
         setSearchResults([]);
@@ -251,7 +249,7 @@ const ChatList: React.FC<ChatListProps> = ({ setChatId }) => {
     } finally {
       setIsSearching(false);
     }
-  }, [searchText]);
+  }, []);
 
   const handleDeleteChat = async (chatId: string) => {
     try {
@@ -321,19 +319,25 @@ const ChatList: React.FC<ChatListProps> = ({ setChatId }) => {
   }, []);
 
   useEffect(() => {
-    if (searchText.length > 2) {
-      handleSearch();
-    } else {
+    if (searchText.length < 3) {
       setSearchResults([]);
       setIsSearching(false);
+      return;
     }
+
+    const timeoutId = setTimeout(() => {
+      handleSearch(searchText);
+    }, 400);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
   }, [searchText, handleSearch]);
 
   const currentChatId = useMemo(() => location.pathname.split("/msg/")[1], [location.pathname]);
 
   const handleChatClick = useCallback((chat: ChatInList) => {
     const routeId = chat.chat_type === "direct" && chat.username ? chat.username : chat.id;
-    // Не перезагружать, если чат уже открыт
     if (currentChatId === routeId) {
       return;
     }
@@ -383,9 +387,6 @@ const ChatList: React.FC<ChatListProps> = ({ setChatId }) => {
       <div className="h-full w-full bg-primary-bg border-r border-primary-bdr text-white flex flex-col">
         <div className="w-full p-[10px] flex-shrink-0">
           <motion.input
-            // initial={{ opacity: 0, y: -10 }}
-            // animate={{ opacity: 1, y: 0 }}
-            // transition={{ duration: 0.2 }}
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
             className="p-[10px] outline-none bg-secondary-bg w-full placeholder:text-white/20 focus:ring-2 focus:ring-primary transition-all"
@@ -453,10 +454,10 @@ const ChatList: React.FC<ChatListProps> = ({ setChatId }) => {
       <AnimatePresence>
         {popupPos && popupChatId && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.15 }}
+            initial={{ opacity: 0, scale: 0.95, y: -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: -10 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
             ref={popupRef}
             style={{
               position: "fixed",
@@ -464,24 +465,34 @@ const ChatList: React.FC<ChatListProps> = ({ setChatId }) => {
               top: popupPos.y,
               zIndex: 1000,
             }}
-            className="bg-secondary-bg flex flex-col rounded shadow-lg overflow-hidden"
+            className="bg-secondary-bg border border-primary-bdr shadow-2xl min-w-[180px] overflow-hidden rounded-sm"
           >
             {popupChatId && chats.find(c => c.id === popupChatId)?.id !== 'general' && (
               <>
-                <motion.div
-                  whileHover={{ backgroundColor: 'rgba(255, 255, 255, 1)', color: '#000' }}
-                  onClick={() => popupChatId && handleClearChat(popupChatId)}
-                  className="cursor-pointer p-[10px] px-[20px] transition-colors"
+                <motion.button
+                  whileHover={{ backgroundColor: 'rgba(131, 214, 197, 0.1)' }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    if (popupChatId) {
+                      handleClearChat(popupChatId);
+                    }
+                  }}
+                  className="block w-full px-4 py-2.5 text-left text-white text-sm cursor-pointer transition-colors border-b border-primary-bdr/50 hover:text-primary"
                 >
                   Очистить историю
-                </motion.div>
-                <motion.div
-                  whileHover={{ backgroundColor: 'rgba(239, 68, 68, 1)', color: '#000' }}
-                  onClick={() => popupChatId && handleDeleteChat(popupChatId)}
-                  className="text-red-500 cursor-pointer p-[10px] px-[20px] transition-colors"
+                </motion.button>
+                <motion.button
+                  whileHover={{ backgroundColor: 'rgba(244, 97, 97, 0.2)' }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    if (popupChatId) {
+                      handleDeleteChat(popupChatId);
+                    }
+                  }}
+                  className="block w-full px-4 py-2.5 text-left text-red-500 text-sm cursor-pointer transition-colors hover:text-red-400"
                 >
                   Удалить чат
-                </motion.div>
+                </motion.button>
               </>
             )}
           </motion.div>

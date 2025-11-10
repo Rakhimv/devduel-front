@@ -60,7 +60,6 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
 
       if (savedGameSession && savedIsInGame === 'true') {
         setGameSessionId(savedGameSession);
-        // Don't set isInGame to true immediately - validate first
         if (savedDuration) {
           setGameDuration(parseInt(savedDuration));
         }
@@ -70,24 +69,20 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     restoreSession();
   }, []);
 
-  // Validate restored session when socket connects (only once)
   useEffect(() => {
     if (!socket || !gameSessionId || hasValidatedSession) return;
 
-    // If we have a sessionId but isInGame is false, validate the session
     const savedIsInGame = localStorage.getItem('isInGame');
     if (savedIsInGame === 'true' && !isInGame) {
       setHasValidatedSession(true);
       validateSession(gameSessionId).then((isValid) => {
         if (!isValid) {
-          // Session is invalid (finished/abandoned), clear it
           setGameSessionId(null);
           setGameDuration(null);
           localStorage.removeItem('gameSessionId');
           localStorage.removeItem('isInGame');
           localStorage.removeItem('gameDuration');
         } else {
-          // Session is valid, restore isInGame
           setIsInGame(true);
         }
       });

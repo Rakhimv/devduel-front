@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, memo } from 'react';
+import React, { useState, useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { FaRegSmile, FaSmile } from 'react-icons/fa';
 import { IoSend } from 'react-icons/io5';
 import EmojiPicker from 'emoji-picker-react';
@@ -11,19 +11,28 @@ interface ChatInputProps {
   disabled?: boolean;
 }
 
-const ChatInput: React.FC<ChatInputProps> = memo(({
+export interface ChatInputRef {
+  focus: () => void;
+}
+
+const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(({
   value,
   onChange,
   onSend,
   placeholder = "Сообщение...",
   disabled = false
-}) => {
+}, ref) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
+  useImperativeHandle(ref, () => ({
+    focus: () => {
+      textareaRef.current?.focus();
+    }
+  }));
+
   useEffect(() => {
-    // Auto-resize textarea
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
@@ -31,10 +40,8 @@ const ChatInput: React.FC<ChatInputProps> = memo(({
   }, [value]);
 
   useEffect(() => {
-    // Close emoji picker when clicking outside or pressing Escape
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      // Check if click is outside the emoji picker and not on the emoji button
       if (
         emojiPickerRef.current &&
         !emojiPickerRef.current.contains(target) &&
@@ -147,15 +154,6 @@ const ChatInput: React.FC<ChatInputProps> = memo(({
 
       </div>
     </div>
-  );
-}, (prevProps, nextProps) => {
-  // Кастомное сравнение - перерисовываем только если изменились важные пропсы
-  return (
-    prevProps.value === nextProps.value &&
-    prevProps.disabled === nextProps.disabled &&
-    prevProps.placeholder === nextProps.placeholder &&
-    prevProps.onChange === nextProps.onChange &&
-    prevProps.onSend === nextProps.onSend
   );
 });
 

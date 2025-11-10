@@ -5,11 +5,11 @@ import type { Message } from "../../types/chat";
 import { useAuth } from "../../hooks/useAuth";
 import { useGame } from "../../context/GameContext";
 import { formatLastSeen } from "../../utils/lastSeen";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { MessageListSkeleton } from "../ui/MessageSkeleton";
 import ChatHeader from "./ChatHeader";
 import ChatMessages from "./ChatMessages";
-import ChatInputForm from "./ChatInputForm";
+import ChatInputForm, { type ChatInputFormRef } from "./ChatInputForm";
 import MessageContextMenu from "./MessageContextMenu";
 import UserSelectModal from "./UserSelectModal";
 import ProfileModal from "./ProfileModal";
@@ -43,6 +43,7 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
     const participantsLimit = 10;
     const currentChatIdRef = useRef<string | null>(null);
     const chatTextsRef = useRef<{ [chatId: string]: string }>({});
+    const chatInputFormRef = useRef<ChatInputFormRef>(null);
     const [isLoadingChatInfo, setIsLoadingChatInfo] = useState(false);
     const [isLoadingMessages, setIsLoadingMessages] = useState(false);
     const [replyingToMessage, setReplyingToMessage] = useState<Message | null>(null);
@@ -60,7 +61,6 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
         currentChatIdRef.current = null;
     }
 
-    // Socket handlers - исправленная логика из старого кода
     useEffect(() => {
         if (!chatId) {
             setNullChat();
@@ -72,15 +72,16 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
         currentChatIdRef.current = chatId;
 
         const handleNewMessage = (msg: Message) => {
-            // Убираем блок непрочитанных при новом сообщении
             setShowUnreadDivider(false);
-            // Моментально добавляем сообщение
-            setMessages((prev) => [...prev, msg]);
+            const messageWithType: Message = {
+                ...msg,
+                message_type: msg.message_type || 'text'
+            };
+            setMessages((prev) => [...prev, messageWithType]);
         };
 
         const handleMessagesReadByOther = ({ chatId: readChatId, messageIds }: any) => {
             if (readChatId === currentChatIdRef.current) {
-                // МОМЕНТАЛЬНО обновляем статус прочитано
                 setMessages((prev) =>
                     prev.map((msg) =>
                         (messageIds.includes(msg.id) && msg.user_id === user?.id)
@@ -269,7 +270,6 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
         };
     }, [chatId, socket, user, chatInfo, navigate]);
 
-    // Загрузка чата и сообщений
     useEffect(() => {
         if (!chatId) {
             setIsLoadingChatInfo(false);
@@ -278,10 +278,8 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
 
         setIsLoadingChatInfo(true);
         
-        // Сохраняем текст текущего чата перед переключением
         if (currentChatIdRef.current && currentChatIdRef.current !== chatId) {
             chatTextsRef.current[currentChatIdRef.current] = text;
-            // Сбрасываем состояние ответа при смене чата
             setReplyingToMessage(null);
             setHighlightedMessageId(null);
         }
@@ -290,7 +288,15 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
             .get(`/chats/${chatId}`)
             .then((res) => {
                 setChatInfo(res.data);
-                        setIsLoadingChatInfo(false);
+                setIsLoadingChatInfo(false);
+                
+             
+                setTimeout(() => {
+                    if (chatInputFormRef.current && res.data.canSend) {
+                        chatInputFormRef.current.focus();
+                    }
+                }, 200);
+                
                 if (res.data.chat_type === "direct" && res.data.user) {
                     setIsUserOnline(res.data.user.is_online || false);
                 }
@@ -324,11 +330,10 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                 setMessages([]);
                 setChatInfo(null);
                 setShowUnreadDivider(false);
-                            setIsLoadingChatInfo(false);
+                setIsLoadingChatInfo(false);
             });
     }, [chatId, user]);
 
-    // Восстанавливаем текст для чата
     useLayoutEffect(() => {
         if (chatId) {
             const savedText = chatTextsRef.current[chatId] || "";
@@ -336,7 +341,15 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
         }
     }, [chatId]);
 
-    // Обновление lastSeen
+    useEffect(() => {
+        if (chatInfo?.canSend && chatInputFormRef.current) {
+            const focusTimeout = setTimeout(() => {
+                chatInputFormRef.current?.focus();
+            }, 100);
+            return () => clearTimeout(focusTimeout);
+        }
+    }, [chatInfo?.canSend]);
+
     useEffect(() => {
         if (!chatInfo?.chat_type || chatInfo.chat_type !== "direct" || !chatInfo.user?.updated_at) {
             return;
@@ -352,7 +365,6 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
         return () => clearInterval(interval);
     }, [chatInfo, isUserOnline]);
 
-    // Отметка сообщений как прочитанных
     useEffect(() => {
         if (!chatId || !user) return;
 
@@ -483,16 +495,7 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
     const handleMessageRightClick = (e: React.MouseEvent, messageId: number) => {
         e.preventDefault();
         setMessageContextMenu({ x: e.clientX, y: e.clientY, messageId });
-        // Highlight the message
         setHighlightedMessageId(messageId);
-        // Scroll to message if needed
-        setTimeout(() => {
-            const messageElement = document.getElementById(`message-${messageId}`);
-            if (messageElement) {
-                messageElement.scrollIntoView({ behavior: "smooth", block: "center" });
-            }
-        }, 50);
-        // Remove highlight after 2 seconds
         setTimeout(() => {
             setHighlightedMessageId(null);
         }, 2000);
@@ -500,7 +503,7 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
 
     const handleReplyMessage = (messageId: number) => {
         const message = messages.find(m => m.id === messageId);
-        if (message && message.message_type === 'text') {
+        if (message && (message.message_type === 'text' || !message.message_type || message.message_type !== 'game_invite')) {
             setReplyingToMessage(message);
             setMessageContextMenu(null);
         }
@@ -547,8 +550,7 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
 
     const handleParticipantClick = async (participantUsername: string) => {
         setShowParticipantsModal(false);
-        // Просто навигируем - Messanger обновит chatId на основе URL
-                navigate(`/msg/${participantUsername}`, { replace: true });
+        navigate(`/msg/${participantUsername}`, { replace: true });
     };
 
     const loadParticipants = async (offset: number) => {
@@ -652,11 +654,13 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                     socket={socket}
                     onContextMenu={handleMessageRightClick}
                     highlightedMessageId={highlightedMessageId}
+                    chatId={chatId}
                 />
             )}
 
             {chatInfo.canSend && (
                 <ChatInputForm
+                    ref={chatInputFormRef}
                     text={text}
                     onTextChange={handleTextChange}
                     onSend={sendMessage}
@@ -680,18 +684,21 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                 currentUserId={user?.id}
             />
 
-            {messageContextMenu && (
-                <MessageContextMenu
-                    x={messageContextMenu.x}
-                    y={messageContextMenu.y}
-                    messageId={messageContextMenu.messageId}
-                    onCopy={handleCopyMessage}
-                    onDelete={handleDeleteMessage}
-                    onReply={handleReplyMessage}
-                    canDelete={messages.find(m => m.id === messageContextMenu.messageId)?.user_id === user?.id}
-                    onClose={() => setMessageContextMenu(null)}
-                />
-            )}
+            <AnimatePresence>
+                {messageContextMenu && (
+                    <MessageContextMenu
+                        key={`menu-${messageContextMenu.messageId}`}
+                        x={messageContextMenu.x}
+                        y={messageContextMenu.y}
+                        messageId={messageContextMenu.messageId}
+                        onCopy={handleCopyMessage}
+                        onDelete={handleDeleteMessage}
+                        onReply={handleReplyMessage}
+                        canDelete={messages.find(m => m.id === messageContextMenu.messageId)?.user_id === user?.id}
+                        onClose={() => setMessageContextMenu(null)}
+                    />
+                )}
+            </AnimatePresence>
 
             <ProfileModal
                 isOpen={showProfileModal}

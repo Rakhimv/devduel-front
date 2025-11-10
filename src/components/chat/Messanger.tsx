@@ -14,30 +14,23 @@ const Messanger = ({ initialChatId }: MessangerProps) => {
     const currentRequestRef = useRef<string | null>(null);
 
     useEffect(() => {
-        // Синхронно обновляем chatId при изменении initialChatId для моментальной реакции
         if (initialChatId === 'general') {
-            // Для general чата сразу устанавливаем chatId без API запроса
             currentRequestRef.current = 'general';
             setChatId('general');
         } else if (initialChatId) {
-            // Запоминаем текущий запрос для проверки актуальности ответа
             const requestId = initialChatId;
             currentRequestRef.current = requestId;
             
-            // Сначала устанавливаем initialChatId для быстрой реакции UI
             setChatId(initialChatId);
             
-            // Затем делаем API запрос для получения правильного chatId (может быть username -> chatId)
             api.get(`/chats/${initialChatId}`)
                 .then((res) => {
-                    // Обновляем только если это все еще актуальный запрос
                     if (currentRequestRef.current === requestId) {
                         setChatId(res.data.chatId || initialChatId);
                     }
                 })
                 .catch((error) => {
                     console.error('Ошибка получения чата:', error);
-                    // В случае ошибки сбрасываем только если запрос все еще актуален
                     if (currentRequestRef.current === requestId) {
                         setChatId(null);
                     }

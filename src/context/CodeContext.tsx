@@ -27,20 +27,11 @@ export const CodeProvider: React.FC<CodeProviderProps> = ({ children }) => {
   const [language, setLanguage] = useState<string>('javascript');
 
   useEffect(() => {
-    const savedCode = localStorage.getItem('gameCode');
     const savedLanguage = localStorage.getItem('gameLanguage');
-    
-    if (savedCode) {
-      setCode(savedCode);
-    }
     if (savedLanguage) {
       setLanguage(savedLanguage);
     }
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem('gameCode', code);
-  }, [code]);
 
   useEffect(() => {
     localStorage.setItem('gameLanguage', language);
@@ -49,7 +40,6 @@ export const CodeProvider: React.FC<CodeProviderProps> = ({ children }) => {
   const clearCode = () => {
     setCode('// Пиши код тут...');
     setLanguage('javascript');
-    localStorage.removeItem('gameCode');
     localStorage.removeItem('gameLanguage');
   };
 

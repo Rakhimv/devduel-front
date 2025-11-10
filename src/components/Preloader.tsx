@@ -11,28 +11,23 @@ const Preloader: React.FC<PreloaderProps> = ({ children }) => {
   const [minDisplayTime, setMinDisplayTime] = useState(true);
 
   useEffect(() => {
-    // Минимальное время отображения прелоадера (чтобы анимация успела проиграться)
     const minTimeTimer = setTimeout(() => {
       setMinDisplayTime(false);
-    }, 3000); // 3 секунды минимум
+    }, 3000);
 
-    // Проверяем готовность приложения
     const checkReady = () => {
       if (document.readyState === 'complete' && !minDisplayTime) {
-        // Плавно скрываем прелоадер
         setTimeout(() => {
           setIsLoading(false);
         }, 500);
       }
     };
 
-    // Если документ уже загружен
     if (document.readyState === 'complete') {
       setTimeout(() => {
         if (!minDisplayTime) {
           setIsLoading(false);
         } else {
-          // Ждем пока пройдет минимальное время
           const readyCheck = setInterval(() => {
             if (!minDisplayTime) {
               clearInterval(readyCheck);
@@ -45,7 +40,6 @@ const Preloader: React.FC<PreloaderProps> = ({ children }) => {
       window.addEventListener('load', checkReady);
     }
 
-    // Проверяем готовность периодически
     const readyInterval = setInterval(() => {
       if (document.readyState === 'complete' && !minDisplayTime) {
         clearInterval(readyInterval);

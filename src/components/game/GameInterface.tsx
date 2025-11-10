@@ -7,7 +7,8 @@ import { Timer } from './Timer';
 import { useAuth } from '../../hooks/useAuth';
 import { getAvatarUrl } from '../../utils/avatarUrl';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-
+import { motion } from "framer-motion"
+import Spinner from '../effects/Spinner';
 interface GameInterfaceProps {
   gameSession: GameSession;
   currentUserId: number;
@@ -46,7 +47,6 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
     }
   }, [gameSession.status, gameSession.id]);
 
-  // Listen for game progress updates from socket
   useEffect(() => {
     if (!socket || gameSession.status !== 'in_progress') return;
 
@@ -69,7 +69,6 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
     };
   }, [socket, gameSession.status, gameProgress]);
 
-  // Handle game finish - wait for animation before showing modal
   useEffect(() => {
     if (gameSession.status === 'finished') {
       const timer = setTimeout(() => {
@@ -135,7 +134,7 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
           {/* Игроки */}
           <div className="flex items-center gap-4 justify-start">
             <div className="flex items-center gap-2">
-              <img 
+              <img
                 src={getAvatarUrl(gameSession.player1.avatar)}
                 alt={gameSession.player1.username}
                 className="w-10 h-10 border border-primary-bdr object-cover"
@@ -150,7 +149,7 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
             <div className="text-lg font-bold text-primary">VS</div>
 
             <div className="flex items-center gap-2">
-              <img 
+              <img
                 src={getAvatarUrl(gameSession.player2.avatar)}
                 alt={gameSession.player2.username}
                 className="w-10 h-10 border border-primary-bdr object-cover"
@@ -189,7 +188,7 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
               <div className="flex items-center justify-center gap-8 mb-8">
                 <div className={`p-4 border-2 ${isPlayer1 ? 'border-primary bg-primary/10' : 'border-primary-bdr bg-secondary-bg'}`}>
                   <div className="flex items-center gap-2 mb-2">
-                    <img 
+                    <img
                       src={getAvatarUrl(gameSession.player1.avatar)}
                       alt={gameSession.player1.username}
                       className="w-8 h-8 border border-primary-bdr object-cover"
@@ -206,7 +205,7 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
 
                 <div className={`p-4 border-2 ${!isPlayer1 ? 'border-primary bg-primary/10' : 'border-primary-bdr bg-secondary-bg'}`}>
                   <div className="flex items-center gap-2 mb-2">
-                    <img 
+                    <img
                       src={getAvatarUrl(gameSession.player2.avatar)}
                       alt={gameSession.player2.username}
                       className="w-8 h-8 border border-primary-bdr object-cover"
@@ -237,7 +236,14 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
             <div className="text-center">
               <h3 className="text-2xl mb-4">Оба игрока готовы!</h3>
               <p className="text-lg mb-4 text-white/60">Игра начнется через несколько секунд...</p>
-              <div className="animate-spin w-12 h-12 border-2 border-primary border-t-transparent mx-auto"></div>
+              <motion.div
+                className="flex text-primary gap-[10px]"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.8, delay: 3 }}
+              >
+                Загрузка <Spinner />
+              </motion.div>
             </div>
           </div>
         )}

@@ -9,7 +9,7 @@ import { deleteAccount } from '../api/api';
 import Modal from '../components/ui/Modal';
 
 const Profile: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const navigate = useNavigate();
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -220,15 +220,22 @@ const Profile: React.FC = () => {
 
       <AvatarChangeModal
         isOpen={isAvatarModalOpen}
-        onClose={() => setIsAvatarModalOpen(false)}
-        onSuccess={handleSuccess}
+        onClose={() => {
+          setIsAvatarModalOpen(false);
+        }}
+        onSuccess={(msg) => {
+          handleSuccess(msg);
+          refreshUser(); // Обновляем данные после успешного изменения аватара
+        }}
         onError={handleError}
       />
       
       <PasswordChangeModal
         isOpen={isPasswordModalOpen}
         onClose={() => setIsPasswordModalOpen(false)}
-        onSuccess={handleSuccess}
+        onSuccess={(msg) => {
+          handleSuccess(msg);
+        }}
         onError={handleError}
       />
 

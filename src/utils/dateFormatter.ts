@@ -1,8 +1,3 @@
-/**
- * Format date for chat date dividers
- * @param date - Date to format
- * @returns Formatted date string like "13 ноября"
- */
 export const formatMessageDate = (date: string | Date): string => {
   const d = typeof date === 'string' ? new Date(date) : date;
   const now = new Date();
@@ -28,12 +23,6 @@ export const formatMessageDate = (date: string | Date): string => {
   }
 };
 
-/**
- * Check if two dates are on different days
- * @param date1 - First date
- * @param date2 - Second date
- * @returns true if dates are on different days
- */
 export const isDifferentDay = (date1: string | Date, date2: string | Date): boolean => {
   const d1 = typeof date1 === 'string' ? new Date(date1) : date1;
   const d2 = typeof date2 === 'string' ? new Date(date2) : date2;

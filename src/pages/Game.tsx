@@ -30,19 +30,16 @@ const Game: React.FC = () => {
         const handleGameSessionEnd = (data: any) => {
             console.log('game_session_end received:', data);
 
-            // Always disconnect player from game
             setIsInGame(false);
             setGameSessionId(null);
             setGameDuration(null);
 
-            // If data contains session info (not just reason), update session to show final state with winner
             if (data && data.id && data.status === 'finished') {
                 console.log('Setting game session with finished status:', data);
                 setGameSession(data as GameSession);
                 setLoading(false);
-                setError(null); // Clear any previous error
+                setError(null);
             } else {
-                // Legacy format with just reason or invalid data
                 console.log('Legacy format or invalid data:', data);
                 setGameSession(null);
                 setLoading(false);
@@ -65,8 +62,6 @@ const Game: React.FC = () => {
         };
 
         const handleGameProgressUpdate = (_progress: { playerLevel: number; opponentLevel: number }) => {
-            // Progress update is handled in GameInterface component
-            // Just trigger a re-check if needed
         };
 
         socket.on('game_session_update', handleGameSessionUpdate);

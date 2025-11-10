@@ -1,4 +1,4 @@
-import { createContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useEffect, useState, useCallback, type ReactNode } from "react";
 import type { User } from "../types/auth";
 import { getUser, logout as apiLogout } from "../api/api";
 import { useSocket, disconnectSocket } from "../hooks/useSocket";
@@ -12,6 +12,7 @@ interface AuthContextType {
     isSocketConnected: boolean;
     setAuth: (user: User) => void;
     logout: () => void;
+    refreshUser: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -25,30 +26,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { socket, isConnected: isSocketConnected } = useSocket(isAuth);
 
 
-    useEffect(() => {
-        const fetchUser = async () => {
-            setIsLoading(true)
-            try {
-                const fetchedUser = await getUser();
-                setUser(fetchedUser);
-                setIsAuth(true);
-            } catch (err: any) {
-                console.error("Не удалось получить пользователя: ", err);
-                if (err.isBanned) {
-                    setUser(null);
-                    setIsAuth(false);
-                    window.history.pushState(null, '', '/banned');
-                    window.dispatchEvent(new PopStateEvent('popstate'));
-                } else {
-                    setUser(null);
-                    setIsAuth(false);
-                }
-            } finally {
-                setIsLoading(false)
+    const fetchUser = useCallback(async () => {
+        setIsLoading(true)
+        try {
+            const fetchedUser = await getUser();
+            setUser(fetchedUser);
+            setIsAuth(true);
+        } catch (err: any) {
+            console.error("Не удалось получить пользователя: ", err);
+            if (err.isBanned) {
+                setUser(null);
+                setIsAuth(false);
+                window.history.pushState(null, '', '/banned');
+                window.dispatchEvent(new PopStateEvent('popstate'));
+            } else {
+                setUser(null);
+                setIsAuth(false);
             }
-        };
-        fetchUser();
+        } finally {
+            setIsLoading(false)
+        }
     }, []);
+
+    useEffect(() => {
+        fetchUser();
+    }, [fetchUser]);
+
+    const refreshUser = useCallback(async () => {
+        await fetchUser();
+    }, [fetchUser]);
 
 
     const setAuth = (newUser: User) => {
@@ -73,7 +79,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
 
-    return <AuthContext.Provider value={{ user, isAuth, isLoading, socket, isSocketConnected, setAuth, logout }}>
+    return <AuthContext.Provider value={{ user, isAuth, isLoading, socket, isSocketConnected, setAuth, logout, refreshUser }}>
         {children}
     </AuthContext.Provider>
 
