@@ -9,6 +9,7 @@ export const api = axios.create({
     "Content-Type": "application/json",
   },
   withCredentials: true,
+  timeout: 10000, // 10 секунд таймаут для всех запросов
 });
 
 api.interceptors.response.use(
@@ -20,20 +21,23 @@ api.interceptors.response.use(
     
     const originalRequest = error.config as any;
     
+    // Не пытаемся обновлять токен для /auth/me, /auth/refresh, /auth/logout, /auth/login, /auth/register
+    // /auth/me используется для проверки авторизации, и если она падает, значит пользователь не залогинен
     if (error.response?.status === 401 && 
         !originalRequest._retry && 
         !originalRequest.url?.includes('/auth/refresh') &&
         !originalRequest.url?.includes('/auth/logout') &&
         !originalRequest.url?.includes('/auth/login') &&
-        !originalRequest.url?.includes('/auth/register')) {
+        !originalRequest.url?.includes('/auth/register') &&
+        !originalRequest.url?.includes('/auth/me')) {
       originalRequest._retry = true;
       
       try {
         await api.post('/auth/refresh');
         return api(originalRequest);
       } catch (refreshError) {
-        window.history.pushState(null, '', '/login');
-        window.dispatchEvent(new PopStateEvent('popstate'));
+        // Если не можем обновить токен, просто реджектим ошибку
+        // Редирект будет сделан в PrivateRoute на основе isAuth
         return Promise.reject(refreshError);
       }
     }
@@ -71,19 +75,66 @@ export const login = async (data: LoginCredentials): Promise<{ user: User }> => 
 export const getUser = async (): Promise<User> => {
   try {
     const response = await api.get("/auth/me");
+    
+    // Проверяем, что мы получили валидные данные пользователя
+    if (!response.data || !response.data.id) {
+      // Если данные не валидны, выбрасываем ошибку
+      const invalidError = new Error("Невалидные данные пользователя");
+      (invalidError as any).status = 401;
+      throw invalidError;
+    }
+    
     return response.data;
   } catch (error) {
+    // Если это наша ошибка (например, из проверки валидности данных), просто пробрасываем её
+    if (error instanceof Error && (error as any).status === 401) {
+      throw error;
+    }
+    
+    // Обрабатываем случай, когда пользователь забанен (403)
     if (error instanceof AxiosError && error.response?.status === 403 && error.response?.data?.is_banned) {
       const banError = new Error(error.response.data.message || "Пользователь забанен");
       (banError as any).isBanned = true;
       (banError as any).message = error.response.data.message;
       throw banError;
     }
-    throw new Error(
-      error instanceof AxiosError && error.response?.data?.message
-        ? error.response.data.message
-        : "Ошибка при получении данных пользователя"
-    );
+    
+    // Обрабатываем случай, когда пользователь не авторизован (401)
+    // Это нормальная ситуация - пользователь просто не залогинен
+    if (error instanceof AxiosError && error.response?.status === 401) {
+      const authError = new Error("Пользователь не авторизован");
+      (authError as any).status = 401;
+      throw authError;
+    }
+    
+    // Обрабатываем сетевые ошибки, таймауты и другие проблемы
+    if (error instanceof AxiosError) {
+      // Если нет ответа от сервера (сеть, таймаут, CORS)
+      if (!error.response) {
+        const networkError = new Error("Ошибка сети или сервер недоступен");
+        (networkError as any).isNetworkError = true;
+        (networkError as any).status = 401; // Считаем сетевую ошибку как неавторизованный
+        throw networkError;
+      }
+      
+      // Для других ошибок выбрасываем стандартную ошибку
+      const otherError = new Error(
+        error.response?.data?.message || "Ошибка при получении данных пользователя"
+      );
+      (otherError as any).status = error.response?.status || 500;
+      throw otherError;
+    }
+    
+    // Для всех остальных ошибок (включая наши собственные ошибки)
+    // Если у ошибки уже есть status, пробрасываем её
+    if (error instanceof Error && (error as any).status) {
+      throw error;
+    }
+    
+    // Для всех остальных ошибок создаем новую
+    const unknownError = new Error("Ошибка при получении данных пользователя");
+    (unknownError as any).status = 401; // По умолчанию считаем неавторизованным
+    throw unknownError;
   }
 };
 

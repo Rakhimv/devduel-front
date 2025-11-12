@@ -28,22 +28,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const fetchUser = useCallback(async () => {
         setIsLoading(true)
+        setUser(null);
+        setIsAuth(false);
+        
         try {
             const fetchedUser = await getUser();
-            setUser(fetchedUser);
-            setIsAuth(true);
-        } catch (err: any) {
-            console.error("Не удалось получить пользователя: ", err);
-            if (err.isBanned) {
-                setUser(null);
-                setIsAuth(false);
-                window.history.pushState(null, '', '/banned');
-                window.dispatchEvent(new PopStateEvent('popstate'));
+            // Убеждаемся, что мы получили валидного пользователя
+            if (fetchedUser && fetchedUser.id) {
+                setUser(fetchedUser);
+                setIsAuth(true);
             } else {
+                // Если пользователь не валиден, считаем его неавторизованным
                 setUser(null);
                 setIsAuth(false);
             }
+        } catch (err: any) {
+            // При любой ошибке (401, 403, сеть, таймаут) устанавливаем пользователя как неавторизованного
+            setUser(null);
+            setIsAuth(false);
+            
+            // Логируем ошибки для отладки (можно убрать в продакшене)
+            if (process.env.NODE_ENV === 'development') {
+                console.log("Auth error:", {
+                    message: err?.message,
+                    status: err?.status,
+                    isBanned: err?.isBanned,
+                    isNetworkError: err?.isNetworkError,
+                    error: err
+                });
+            }
+            
+            if (err.isBanned) {
+                // Используем window.location для редиректа на забаненную страницу
+                if (typeof window !== 'undefined') {
+                    window.location.href = '/banned';
+                }
+            }
         } finally {
+            // КРИТИЧНО: всегда устанавливаем isLoading в false, даже при ошибке
+            // Это гарантирует, что PrivateRoute сможет сделать редирект
             setIsLoading(false)
         }
     }, []);
