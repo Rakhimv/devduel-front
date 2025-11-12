@@ -16,6 +16,7 @@
     "@types/react-icons": "^3.0.0",
     "@types/socket.io": "^3.0.2",
     "@types/socket.io-client": "^3.0.0",
+    "axios": "^1.13.2",
     "dotenv": "^17.2.2",
     "emoji-picker-react": "^4.15.0",
     "framer-motion": "^12.23.24",
