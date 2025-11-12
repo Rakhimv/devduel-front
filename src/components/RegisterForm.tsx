@@ -39,7 +39,7 @@ const RegisterForm = () => {
                 password: data.password,
             });
             setAuth(user);
-            navigate("/")
+            navigate("/app")
         } catch (err: any) {
             setErrorText(err.response?.data?.message || err.message);
             if (err.response?.data?.errType === "login") {

@@ -41,7 +41,7 @@ const LoginForm = () => {
             });
             setAuth(user);
             console.log(user);
-            navigate("/")
+            navigate("/app")
         } catch (err: any) {
             setError(err.response?.data?.message || err.message);
         } finally {

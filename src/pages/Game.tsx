@@ -86,7 +86,7 @@ const Game: React.FC = () => {
         setIsInGame(false);
         setGameSessionId(null);
         setGameDuration(null);
-        navigate('/msg');
+        navigate('/app');
     };
 
     const handleReady = () => {
@@ -116,7 +116,7 @@ const Game: React.FC = () => {
                 <div className="text-center text-white">
                     <div className="text-redDD text-xl mb-4">{error}</div>
                     <button
-                        onClick={() => navigate('/msg')}
+                        onClick={() => navigate('/app')}
                         className="bg-primary hover:bg-primary/80 text-black px-6 py-3 text-sm font-semibold border border-primary cursor-pointer"
                     >
                         Вернуться в чат
@@ -132,7 +132,7 @@ const Game: React.FC = () => {
                 <div className="text-center text-white">
                     <div className="text-white/60 text-xl mb-4">Игровая сессия не найдена</div>
                     <button
-                        onClick={() => navigate('/msg')}
+                        onClick={() => navigate('/app')}
                         className="bg-primary hover:bg-primary/80 text-black px-6 py-3 text-sm font-semibold border border-primary cursor-pointer"
                     >
                         Вернуться в чат

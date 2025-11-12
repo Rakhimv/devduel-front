@@ -427,7 +427,7 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                     setChatInfo({ ...chatInfo, chatId: finalChatId, chatExists: true });
                     socket.emit("join_chat", finalChatId);
                     setChatId(finalChatId);
-                    navigate(`/msg/${finalChatId}`, { replace: true });
+                    navigate(`/app/msg/${finalChatId}`, { replace: true });
 
                     setTimeout(() => {
                         socket.emit("send_game_invite", {
@@ -550,7 +550,7 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
 
     const handleParticipantClick = async (participantUsername: string) => {
         setShowParticipantsModal(false);
-        navigate(`/msg/${participantUsername}`, { replace: true });
+        navigate(`/app/msg/${participantUsername}`, { replace: true });
     };
 
     const loadParticipants = async (offset: number) => {

@@ -123,7 +123,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     localStorage.removeItem('gameSessionId');
     localStorage.removeItem('isInGame');
     localStorage.removeItem('gameDuration');
-    navigate('/msg');
+    navigate('/app');
   };
 
   useEffect(() => {

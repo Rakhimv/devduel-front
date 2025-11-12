@@ -1,4 +1,4 @@
-import axios, { AxiosError } from "axios";
+import axios, { AxiosError, type AxiosResponse } from "axios";
 import type { LoginCredentials, RegisterCredentials, User } from "../types/auth";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -12,8 +12,12 @@ export const api = axios.create({
 });
 
 api.interceptors.response.use(
-  (response) => response,
-  async (error: AxiosError) => {
+  (response: AxiosResponse) => response,
+  async (error: unknown) => {
+    if (!(error instanceof AxiosError)) {
+      return Promise.reject(error);
+    }
+    
     const originalRequest = error.config as any;
     
     if (error.response?.status === 401 && 
@@ -70,7 +74,10 @@ export const getUser = async (): Promise<User> => {
     return response.data;
   } catch (error) {
     if (error instanceof AxiosError && error.response?.status === 403 && error.response?.data?.is_banned) {
-      throw { ...error, isBanned: true, message: error.response.data.message };
+      const banError = new Error(error.response.data.message || "Пользователь забанен");
+      (banError as any).isBanned = true;
+      (banError as any).message = error.response.data.message;
+      throw banError;
     }
     throw new Error(
       error instanceof AxiosError && error.response?.data?.message

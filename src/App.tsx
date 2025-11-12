@@ -5,6 +5,7 @@ import { CodeProvider } from './context/CodeContext';
 import GameNavigationGuard from './components/GameNavigationGuard';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Landing from './pages/Landing';
 import PrivateRout from './routes/PrivateRoute';
 import UserExRoute from './routes/UserExRoute';
 import TitleAnimation from './components/ui/TitleAnimation';
@@ -27,16 +28,20 @@ function App() {
               <Routes>
                 <Route path='/anim' element={<TitleAnimation />} />
 
+                {/* Лендинг - доступен всем */}
+                <Route path="/" element={<Landing />} />
+
                 <Route element={<UserExRoute />}>
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/banned" element={<Banned />} />
                 </Route>
 
+                {/* Защищенные маршруты - требуют авторизации */}
                 <Route element={<PrivateRout />}>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/msg/" element={<Dashboard />} />
-                  <Route path="/msg/:id" element={<Dashboard />} />
+                  <Route path="/app" element={<Dashboard />} />
+                  <Route path="/app/msg/" element={<Dashboard />} />
+                  <Route path="/app/msg/:id" element={<Dashboard />} />
                   <Route path="/rating" element={
                     <HeaderLayout>
                       <Rating />

@@ -167,7 +167,7 @@ const ChatList: React.FC<ChatListProps> = ({ setChatId }) => {
       const routeId = deletedChat?.chat_type === "direct" && deletedChat?.username ? deletedChat.username : chatId;
       if (location.pathname.includes(routeId)) {
         setChatId(null);
-        navigate('/msg');
+        navigate('/app');
       }
       setChats((prev) => prev.filter((chat) => chat.id !== chatId));
     };
@@ -186,7 +186,7 @@ const ChatList: React.FC<ChatListProps> = ({ setChatId }) => {
       fetchChats();
 
       if (chatId && !chats.some(chat => chat.id === chatId)) {
-        navigate(`/msg/${chatId}`);
+        navigate(`/app/msg/${chatId}`);
         setChatId(chatId);
       }
     };
@@ -334,19 +334,19 @@ const ChatList: React.FC<ChatListProps> = ({ setChatId }) => {
     };
   }, [searchText, handleSearch]);
 
-  const currentChatId = useMemo(() => location.pathname.split("/msg/")[1], [location.pathname]);
+  const currentChatId = useMemo(() => location.pathname.split("/app/msg/")[1], [location.pathname]);
 
   const handleChatClick = useCallback((chat: ChatInList) => {
     const routeId = chat.chat_type === "direct" && chat.username ? chat.username : chat.id;
     if (currentChatId === routeId) {
       return;
     }
-    navigate(`/msg/${routeId}`);
+    navigate(`/app/msg/${routeId}`);
     setChatId(routeId);
   }, [navigate, setChatId, currentChatId]);
 
   const startPrivateChat = useCallback((userLogin: string) => {
-    navigate(`/msg/${userLogin}`);
+    navigate(`/app/msg/${userLogin}`);
     setChatId(userLogin);
     setSearchText("");
   }, [navigate, setChatId]);

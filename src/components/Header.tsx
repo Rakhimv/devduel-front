@@ -16,8 +16,8 @@ const Header = () => {
 
     const isActive = (path: string) => {
         if (path === '/game') return location.pathname.startsWith('/game');
-        if (path === '/msg') return location.pathname === '/' || (location.pathname.startsWith('/msg') && !location.pathname.startsWith('/msg/support'));
-        if (path === '/msg/support') return location.pathname === '/msg/support';
+        if (path === '/msg') return location.pathname === '/app' || (location.pathname.startsWith('/app/msg') && !location.pathname.startsWith('/app/msg/support'));
+        if (path === '/msg/support') return location.pathname === '/app/msg/support';
         if (path === '/admin') return location.pathname === '/admin';
         return location.pathname === path;
     };
@@ -35,7 +35,7 @@ const Header = () => {
                 {/* В центре - Иконки чат и рейтинг */}
                 <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-2">
                     <button
-                        onClick={() => handleNavigation('/msg')}
+                        onClick={() => handleNavigation('/app')}
                         className={`p-2 transition-colors cursor-pointer ${
                             isActive('/msg') 
                                 ? 'text-primary' 
@@ -59,7 +59,7 @@ const Header = () => {
                     </button>
 
                     <button
-                        onClick={() => handleNavigation('/msg/support')}
+                        onClick={() => handleNavigation('/app/msg/support')}
                         className={`p-2 transition-colors cursor-pointer ${
                             isActive('/msg/support') 
                                 ? 'text-primary' 
