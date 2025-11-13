@@ -8,7 +8,7 @@ import Spinner from '@/components/effects/Spinner';
 import { motion } from "framer-motion"
 const Game: React.FC = () => {
     const { sessionId } = useParams<{ sessionId: string }>();
-    const { user, socket } = useAuth();
+    const { user, socket, refreshUser } = useAuth();
     const { setIsInGame, setGameSessionId, setGameDuration } = useGame();
     const navigate = useNavigate();
     const [gameSession, setGameSession] = useState<GameSession | null>(null);
@@ -27,12 +27,21 @@ const Game: React.FC = () => {
             setGameDuration(session.duration);
         };
 
-        const handleGameSessionEnd = (data: any) => {
+        const handleGameSessionEnd = async (data: any) => {
             console.log('game_session_end received:', data);
 
             setIsInGame(false);
             setGameSessionId(null);
             setGameDuration(null);
+
+            // Обновляем профиль после завершения игры для обновления статистики
+            if (data && (data.status === 'finished' || data.reason === 'timeout' || data.reason === 'finished')) {
+                try {
+                    await refreshUser();
+                } catch (error) {
+                    console.error('Error refreshing user after game end:', error);
+                }
+            }
 
             if (data && data.id && data.status === 'finished') {
                 console.log('Setting game session with finished status:', data);

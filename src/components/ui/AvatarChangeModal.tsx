@@ -45,7 +45,6 @@ const AvatarChangeModal: React.FC<AvatarChangeModalProps> = ({
       if (response.ok) {
         onSuccess('Аватар успешно обновлен!');
         onClose();
-        setTimeout(() => window.location.reload(), 2000);
       } else {
         onError('Ошибка при загрузке аватара');
       }

@@ -13,6 +13,7 @@ export const Timer: React.FC<{ startTime: string; duration: number }> = ({ start
             const remaining = Math.max(0, endTime - now);
             if (remaining <= 0) {
                 setTimer({ minutes: 0, seconds: 0, isActive: false });
+                // Таймер достиг 00:00, но завершение игры обрабатывается на сервере
                 return;
             }
             const minutes = Math.floor(remaining / 60000);
