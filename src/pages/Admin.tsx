@@ -39,11 +39,13 @@ interface Statistics {
 }
 
 const Admin = () => {
-    const [activeTab, setActiveTab] = useState<'users' | 'tasks' | 'statistics'>('statistics');
+    const [activeTab, setActiveTab] = useState<'users' | 'tasks' | 'statistics' | 'settings'>('statistics');
     const [users, setUsers] = useState<User[]>([]);
     const [tasks, setTasks] = useState<Task[]>([]);
     const [statistics, setStatistics] = useState<Statistics | null>(null);
     const [loading, setLoading] = useState(false);
+    const [maintenanceMode, setMaintenanceMode] = useState(false);
+    const [maintenanceLoading, setMaintenanceLoading] = useState(false);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
     const [showTaskModal, setShowTaskModal] = useState(false);
     const [testingTask, setTestingTask] = useState<Task | null>(null);
@@ -66,7 +68,33 @@ const Admin = () => {
 
     useEffect(() => {
         loadData();
+        if (activeTab === 'settings') {
+            loadMaintenanceMode();
+        }
     }, [activeTab]);
+
+    const loadMaintenanceMode = async () => {
+        try {
+            const data = await adminApi.getMaintenanceMode();
+            setMaintenanceMode(data.enabled);
+        } catch (error) {
+            console.error('Ошибка загрузки режима обслуживания:', error);
+        }
+    };
+
+    const handleToggleMaintenanceMode = async () => {
+        setMaintenanceLoading(true);
+        try {
+            const newValue = !maintenanceMode;
+            await adminApi.setMaintenanceMode(newValue);
+            setMaintenanceMode(newValue);
+        } catch (error) {
+            console.error('Ошибка изменения режима обслуживания:', error);
+            alert('Ошибка изменения режима обслуживания');
+        } finally {
+            setMaintenanceLoading(false);
+        }
+    };
 
     const loadData = async () => {
         setLoading(true);
@@ -225,6 +253,12 @@ const Admin = () => {
                     >
                         Задания
                     </button>
+                    <button
+                        onClick={() => setActiveTab('settings')}
+                        className={`px-4 py-2 cursor-pointer ${activeTab === 'settings' ? 'border-b-2 border-primary text-primary' : 'text-white/60 hover:text-white'}`}
+                    >
+                        Настройки
+                    </button>
                 </div>
 
                 {loading && (
@@ -305,6 +339,44 @@ const Admin = () => {
                                     ))}
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                )}
+
+                {!loading && activeTab === 'settings' && (
+                    <div className="bg-secondary-bg border border-primary-bdr p-6">
+                        <h2 className="text-2xl font-bold mb-6">Настройки приложения</h2>
+                        
+                        <div className="space-y-6">
+                            <div className="flex items-center justify-between p-4 bg-primary-bg border border-primary-bdr">
+                                <div>
+                                    <h3 className="text-lg font-semibold mb-2">Режим разработки/обновления</h3>
+                                    <p className="text-white/60 text-sm">
+                                        При включении на странице /app будет отображаться сообщение о том, что ведутся разработки и обновления
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={handleToggleMaintenanceMode}
+                                    disabled={maintenanceLoading}
+                                    className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors cursor-pointer ${
+                                        maintenanceMode ? 'bg-primary' : 'bg-secondary-bg'
+                                    } ${maintenanceLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                >
+                                    <span
+                                        className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
+                                            maintenanceMode ? 'translate-x-7' : 'translate-x-1'
+                                        }`}
+                                    />
+                                </button>
+                            </div>
+                            
+                            {maintenanceMode && (
+                                <div className="p-4 bg-yellow-500/20 border border-yellow-500/50 rounded">
+                                    <p className="text-yellow-400 text-sm">
+                                        ⚠️ Режим разработки включен. Пользователи увидят сообщение о разработке на странице /app
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}

@@ -12,7 +12,6 @@ const Messanger = ({ initialChatId }: MessangerProps) => {
     const [chatId, setChatId] = useState<string | null>(initialChatId || null);
 
     useEffect(() => {
-        // Just set the chatId directly - Chat component will handle loading
         setChatId(initialChatId || null);
     }, [initialChatId]);
 

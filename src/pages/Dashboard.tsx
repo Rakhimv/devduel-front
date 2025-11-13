@@ -2,8 +2,6 @@ import { useParams } from "react-router-dom";
 import Messanger from "../components/chat/Messanger";
 import Header from "../components/Header";
 
-
-
 const Dashboard = () => {
   const { id } = useParams<{ id: string }>();
   

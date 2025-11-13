@@ -5,7 +5,7 @@ import { formatMessageDate, isDifferentDay } from "../../utils/dateFormatter";
 import { getAvatarUrl } from "../../utils/avatarUrl";
 import GameInviteComponent from "../game/GameInvite";
 import { IoCheckmarkDoneSharp, IoCheckmarkSharp } from "react-icons/io5";
-
+import { Badge } from "../ui/badge";
 interface MessageItem {
     message: Message;
     showDateDivider: boolean;
@@ -55,12 +55,15 @@ const MessageComponent = React.memo(({
     return (
         <>
             {showDateDivider && (
-                <div className="flex items-center justify-center my-6 gap-3">
-                    <div className="flex-1 h-px bg-white/20"></div>
-                    <div className="text-xs text-white/60 font-medium px-2">
+                <div className="flex items-center justify-center my-6 gap-3 ">
+                    {/* <div className="flex-1 h-px bg-white/20"></div> */}
+                    {/* <div className="text-xs text-white/60 font-medium px-2">
+                    
+                    </div> */}
+                    <Badge variant={"secondary"} className="text-[14px] ">
                         {formatMessageDate(msg.timestamp)}
-                    </div>
-                    <div className="flex-1 h-px bg-white/20"></div>
+                    </Badge>
+                    {/* <div className="flex-1 h-px bg-white/20"></div> */}
                 </div>
             )}
             {/*             
@@ -126,6 +129,7 @@ const MessageComponent = React.memo(({
                                         }
                                     }}
                                     isFromCurrentUser={msg.user_id === userId}
+                                    isToCurrentUser={msg.game_invite_data?.to_user_id === userId}
                                     gameEndReason={gameEndInfo[msg.game_invite_data?.invite_id || '']?.reason}
                                     gameDuration={gameEndInfo[msg.game_invite_data?.invite_id || '']?.duration}
                                     isInGame={isInGame}

@@ -280,7 +280,6 @@ export default function CodeIDE({ gameId, taskId, onTaskSubmitted }: CodeEditorP
 
   return (
     <div className="w-full h-full flex flex-col bg-primary-bg text-white overflow-hidden">
-      {/* Панель инструментов */}
       <div className="flex items-center gap-4 p-2 border-b border-primary-bdr bg-secondary-bg flex-shrink-0">
         <span className="font-bold text-sm">Редактор кода</span>
         <select
@@ -314,9 +313,7 @@ export default function CodeIDE({ gameId, taskId, onTaskSubmitted }: CodeEditorP
         )}
       </div>
 
-      {/* Редактор и Вывод с вертикальными панелями */}
       <PanelGroup direction="vertical" className="flex-1 min-h-0">
-        {/* Редактор кода */}
         <Panel defaultSize={70} minSize={40} className="min-h-0">
           <div className="h-full overflow-hidden">
             <Editor
@@ -342,7 +339,6 @@ export default function CodeIDE({ gameId, taskId, onTaskSubmitted }: CodeEditorP
 
         <PanelResizeHandle className="h-1 bg-primary-bdr hover:bg-primary/20 transition-colors cursor-row-resize" />
 
-        {/* Панель вывода */}
         <Panel defaultSize={30} minSize={15} maxSize={50} className="min-h-0">
           <div className="h-full bg-secondary-bg flex flex-col border-t border-primary-bdr">
             <div className="font-bold p-2 border-b border-primary-bdr text-sm flex-shrink-0">Вывод</div>

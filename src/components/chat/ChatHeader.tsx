@@ -54,19 +54,21 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({ chatId, chatInfo, lastSeenText,
             {chatInfo?.chat_type === "direct" && chatInfo?.userStats && (
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-1.5 relative px-2 py-1">
+                        <div className="absolute inset-0 bg-primary/15 blur-md opacity-60"></div>
+                        <FaTrophy className="text-yellow-300 relative z-10" size={25} style={{ filter: 'drop-shadow(0 0 3px rgba(255, 193, 7, 0.5))' }} />
+                        <span className="text-sm text-yellow-300 relative z-10 font-medium" style={{ textShadow: '0 0 6px rgba(255, 193, 7, 0.3)' }}>
+                            {chatInfo.userStats.wins_count || 0}
+                        </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 relative px-2 py-1">
                         <div className="absolute inset-0 bg-primary/10 blur-md opacity-50"></div>
-                        <FaGamepad className="text-primary relative z-10" size={16} />
+                        <FaGamepad className="text-primary relative z-10" size={25} />
                         <span className="text-sm text-white/70 relative z-10 font-medium">
                             {chatInfo.userStats.games_count || 0}
                         </span>
                     </div>
-                    <div className="flex items-center gap-1.5 relative px-2 py-1">
-                        <div className="absolute inset-0 bg-primary/15 blur-md opacity-60"></div>
-                        <FaTrophy className="text-primary relative z-10" size={16} style={{ filter: 'drop-shadow(0 0 3px rgba(255, 193, 7, 0.5))' }} />
-                        <span className="text-sm text-primary relative z-10 font-medium" style={{ textShadow: '0 0 6px rgba(255, 193, 7, 0.3)' }}>
-                            {chatInfo.userStats.wins_count || 0}
-                        </span>
-                    </div>
+
                 </div>
             )}
 

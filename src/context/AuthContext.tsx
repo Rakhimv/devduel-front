@@ -10,9 +10,11 @@ interface AuthContextType {
     isLoading: boolean;
     socket: Socket | null;
     isSocketConnected: boolean;
+    avatarVersion: number;
     setAuth: (user: User) => void;
     logout: () => void;
     refreshUser: () => Promise<void>;
+    updateAvatarVersion: () => void;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -21,7 +23,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<User | null>(null)
     const [isAuth, setIsAuth] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(true);
-    
+    const [avatarVersion, setAvatarVersion] = useState(0);
 
     const { socket, isConnected: isSocketConnected } = useSocket(isAuth);
 
@@ -33,21 +35,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         try {
             const fetchedUser = await getUser();
-            // Убеждаемся, что мы получили валидного пользователя
             if (fetchedUser && fetchedUser.id) {
                 setUser(fetchedUser);
                 setIsAuth(true);
             } else {
-                // Если пользователь не валиден, считаем его неавторизованным
                 setUser(null);
                 setIsAuth(false);
             }
         } catch (err: any) {
-            // При любой ошибке (401, 403, сеть, таймаут) устанавливаем пользователя как неавторизованного
             setUser(null);
             setIsAuth(false);
             
-            // Логируем ошибки для отладки (можно убрать в продакшене)
             if (process.env.NODE_ENV === 'development') {
                 console.log("Auth error:", {
                     message: err?.message,
@@ -59,14 +57,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
             
             if (err.isBanned) {
-                // Используем window.location для редиректа на забаненную страницу
                 if (typeof window !== 'undefined') {
                     window.location.href = '/banned';
                 }
             }
         } finally {
-            // КРИТИЧНО: всегда устанавливаем isLoading в false, даже при ошибке
-            // Это гарантирует, что PrivateRoute сможет сделать редирект
             setIsLoading(false)
         }
     }, []);
@@ -76,8 +71,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }, [fetchUser]);
 
     const refreshUser = useCallback(async () => {
-        await fetchUser();
-    }, [fetchUser]);
+        setIsLoading(true);
+        
+        try {
+            const fetchedUser = await getUser();
+            if (fetchedUser && fetchedUser.id) {
+                if (user && fetchedUser.avatar !== user.avatar) {
+                    setAvatarVersion(prev => prev + 1);
+                }
+                setUser(fetchedUser);
+                setIsAuth(true);
+            }
+        } catch (err: any) {
+            if (err?.status === 502 || err?.status === 503 || err?.status === 504) {
+                console.warn('Temporary server error during user refresh, keeping current user data');
+            } else if (err.isBanned) {
+                if (typeof window !== 'undefined') {
+                    window.location.href = '/banned';
+                }
+            } else if (err?.status === 401) {
+                setUser(null);
+                setIsAuth(false);
+            }
+        } finally {
+            setIsLoading(false);
+        }
+    }, [user]);
+
+    const updateAvatarVersion = useCallback(() => {
+        setAvatarVersion(prev => prev + 1);
+    }, []);
 
 
     const setAuth = (newUser: User) => {
@@ -102,7 +125,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
 
-    return <AuthContext.Provider value={{ user, isAuth, isLoading, socket, isSocketConnected, setAuth, logout, refreshUser }}>
+    return <AuthContext.Provider value={{ user, isAuth, isLoading, socket, isSocketConnected, avatarVersion, setAuth, logout, refreshUser, updateAvatarVersion }}>
         {children}
     </AuthContext.Provider>
 

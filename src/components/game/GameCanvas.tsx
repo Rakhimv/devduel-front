@@ -67,7 +67,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         }}
       />
 
-      {/* Animated scanlines */}
       <motion.div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -83,7 +82,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         }}
       />
 
-      {/* Floating matrix-style particles */}
       {[...Array(20)].map((_, i) => (
         <motion.div
           key={i}
@@ -109,7 +107,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         />
       ))}
 
-      {/* Pulsing glow effect */}
       <motion.div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -125,9 +122,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         }}
       />
 
-      {/* Network structure */}
       <svg className="absolute inset-0 w-full h-full" style={{ pointerEvents: 'none' }}>
-        {/* Left branch path */}
         <path
           d={`M 20% 80% L 35% 50% L 50% 20%`}
           fill="none"

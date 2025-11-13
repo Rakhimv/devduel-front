@@ -128,10 +128,8 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
 
   return (
     <div className="w-full bg-secondary-bg text-white flex flex-col h-full">
-      {/* Header */}
       <div className="bg-primary-bg p-3 border-b border-primary-bdr">
         <div className="grid grid-cols-3 items-center gap-4">
-          {/* Игроки */}
           <div className="flex items-center gap-4 justify-start">
             <div className="flex items-center gap-2">
               <img
@@ -162,12 +160,10 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
             </div>
           </div>
 
-          {/* Таймер по центру */}
           <div className="flex justify-center">
             <Timer startTime={gameSession.startTime || "0"} duration={gameSession.duration || 0} />
           </div>
 
-          {/* Кнопка выхода */}
           <div className="flex justify-end">
             <button
               onClick={onLeave}
@@ -179,7 +175,6 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
         </div>
       </div>
 
-      {/* Основной контент */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {gameSession.status === 'waiting' && (
           <div className="flex-1 flex items-center justify-center">
@@ -250,7 +245,6 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
 
         {gameSession.status === 'in_progress' && (
           <PanelGroup direction="horizontal" className="flex-1 overflow-hidden">
-            {/* Левая панель - Задача */}
             <Panel defaultSize={25} minSize={20} maxSize={40} className="bg-primary-bg">
               <div className="h-full p-4 overflow-y-auto border-r border-primary-bdr">
                 {gameProgress?.currentTask ? (
@@ -295,7 +289,6 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
 
             <PanelResizeHandle className="w-1 bg-primary-bdr hover:bg-primary/20 transition-colors" />
 
-            {/* Центральная панель - Редактор кода */}
             <Panel defaultSize={45} minSize={30} className="min-w-0">
               <div className="h-full border-r border-primary-bdr overflow-hidden">
                 <CodeEditor
@@ -308,7 +301,6 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
 
             <PanelResizeHandle className="w-1 bg-primary-bdr hover:bg-primary/20 transition-colors" />
 
-            {/* Правая панель - Canvas */}
             <Panel defaultSize={30} minSize={20} maxSize={40} className="overflow-hidden">
               <GameCanvas
                 width={800}
@@ -324,7 +316,6 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
           </PanelGroup>
         )}
 
-        {/* Модальное окно завершения игры */}
         {gameSession.status === 'finished' && showFinishedModal && (
           <div className="flex-1 flex items-center justify-center relative">
             <div className="fixed inset-0 pointer-events-none z-50">

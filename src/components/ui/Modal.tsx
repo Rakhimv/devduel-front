@@ -32,7 +32,6 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, classNa
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* Backdrop with blur */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -42,7 +41,6 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, classNa
             onClick={onClose}
           />
           
-          {/* Modal */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -50,7 +48,6 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, classNa
             transition={{ duration: 0.2, ease: "easeOut" }}
             className={`relative bg-primary-bg border border-primary-bdr shadow-xl max-w-md w-full mx-4 ${className}`}
           >
-            {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-primary-bdr">
               <h2 className="text-lg font-semibold text-white">{title}</h2>
               <button
@@ -63,7 +60,6 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, classNa
               </button>
             </div>
             
-            {/* Content */}
             <div className="p-4">
               {children}
             </div>

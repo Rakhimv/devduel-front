@@ -59,10 +59,8 @@ const Rating: React.FC = () => {
       <div className="container mx-auto px-4 py-8 overflow-y-auto scroll-hidden" style={{ height: 'calc(100vh - 80px)' }}>
         <h1 className="text-3xl font-bold mb-8 text-center">Рейтинг участников</h1>
 
-        {/* Топ-3 места */}
         {topThree.length > 0 && (
           <div className="flex items-end justify-center gap-4 mb-8">
-            {/* 2 место */}
             {topThree[1] && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -90,12 +88,12 @@ const Rating: React.FC = () => {
                   <p className="text-sm text-white/60 mb-3">@{topThree[1].login}</p>
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-1.5">
-                      <FaTrophy className="text-primary" size={16} />
-                      <span className="text-sm text-primary font-medium">{topThree[1].wins_count}</span>
+                      <FaTrophy className="text-yellow-300" size={16} />
+                      <span className="text-sm text-yellow-300 font-medium">{topThree[1].wins_count}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <FaGamepad className="text-white/60" size={16} />
-                      <span className="text-sm text-white/60">{topThree[1].games_count}</span>
+                      <FaGamepad className="text-primary" size={16} />
+                      <span className="text-sm text-primary">{topThree[1].games_count}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <FaChartLine className="text-white/60" size={16} />
@@ -106,7 +104,8 @@ const Rating: React.FC = () => {
               </motion.div>
             )}
 
-            {/* 1 место */}
+
+
             {topThree[0] && (
               <motion.div
                 initial={{ opacity: 0, y: 20, scale: 0.9 }}
@@ -134,12 +133,12 @@ const Rating: React.FC = () => {
                   <p className="text-sm text-white/60 mb-4">@{topThree[0].login}</p>
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-1.5">
-                      <FaTrophy className="text-primary" size={18} style={{ filter: 'drop-shadow(0 0 3px rgba(131, 214, 197, 0.5))' }} />
-                      <span className="text-base text-primary font-semibold" style={{ textShadow: '0 0 6px rgba(131, 214, 197, 0.3)' }}>{topThree[0].wins_count}</span>
+                      <FaTrophy className="text-yellow-300" size={18} style={{ filter: 'drop-shadow(0 0 3px rgba(131, 214, 197, 0.5))' }} />
+                      <span className="text-base text-yellow-300 font-semibold" style={{ textShadow: '0 0 6px rgba(131, 214, 197, 0.3)' }}>{topThree[0].wins_count}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <FaGamepad className="text-white/60" size={18} />
-                      <span className="text-base text-white/60">{topThree[0].games_count}</span>
+                      <FaGamepad className="text-primary" size={18} />
+                      <span className="text-base text-primary">{topThree[0].games_count}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <FaChartLine className="text-white/60" size={18} />
@@ -150,7 +149,6 @@ const Rating: React.FC = () => {
               </motion.div>
             )}
 
-            {/* 3 место */}
             {topThree[2] && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -178,12 +176,12 @@ const Rating: React.FC = () => {
                   <p className="text-sm text-white/60 mb-3">@{topThree[2].login}</p>
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-1.5">
-                      <FaTrophy className="text-primary" size={16} />
-                      <span className="text-sm text-primary font-medium">{topThree[2].wins_count}</span>
+                      <FaTrophy className="text-yellow-300" size={16} />
+                      <span className="text-sm text-yellow-300 font-medium">{topThree[2].wins_count}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <FaGamepad className="text-white/60" size={16} />
-                      <span className="text-sm text-white/60">{topThree[2].games_count}</span>
+                      <FaGamepad className="text-primary" size={16} />
+                      <span className="text-sm text-primary">{topThree[2].games_count}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <FaChartLine className="text-white/60" size={16} />
@@ -207,30 +205,27 @@ const Rating: React.FC = () => {
               transition={{ duration: 0.3, delay: 0.4 + index * 0.05 }}
               className="bg-primary-bg border border-primary-bdr p-4 flex items-center gap-4 transition-colors "
             >
-              {/* Место */}
               <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center font-bold text-lg bg-secondary-bg border border-primary-bdr text-white/70">
                 {index + 4}
               </div>
 
-              {/* Аватар */}
               <img
                 src={getAvatarUrl(user.avatar)}
                 alt={user.name}
                 className="w-12 h-12 rounded-full border-2 border-primary-bdr object-cover"
               />
 
-              {/* Информация */}
               <div className="flex-1">
                 <h3 className="text-lg font-semibold text-white">{user.name}</h3>
                 <p className="text-white/40">@{user.login}</p>
                 <div className="flex items-center gap-4 mt-1">
                   <div className="flex items-center gap-1.5">
-                    <FaTrophy className="text-primary" size={14} />
-                    <span className="text-sm text-primary font-medium">{user.wins_count}</span>
+                    <FaTrophy className="text-yellow-300" size={14} />
+                    <span className="text-sm text-yellow-300 font-medium">{user.wins_count}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <FaGamepad className="text-white/60" size={14} />
-                    <span className="text-sm text-white/60">{user.games_count}</span>
+                    <FaGamepad className="text-primary" size={14} />
+                    <span className="text-sm text-primary">{user.games_count}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <FaChartLine className="text-white/60" size={14} />

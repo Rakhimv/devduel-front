@@ -34,7 +34,6 @@ const Game: React.FC = () => {
             setGameSessionId(null);
             setGameDuration(null);
 
-            // Обновляем профиль после завершения игры для обновления статистики
             if (data && (data.status === 'finished' || data.reason === 'timeout' || data.reason === 'finished')) {
                 try {
                     await refreshUser();

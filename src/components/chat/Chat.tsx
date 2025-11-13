@@ -74,20 +74,22 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
 
         if (!socket) return;
 
-        // Don't set currentChatIdRef here - wait for chatInfo to be loaded
-        // to get the resolved UUID for direct chats
-
         const handleNewMessage = (msg: Message) => {
             setShowUnreadDivider(false);
             const messageWithType: Message = {
                 ...msg,
                 message_type: msg.message_type || 'text'
             };
-            setMessages((prev) => [...prev, messageWithType]);
+            setMessages((prev) => {
+                const exists = prev.some(m => m.id === messageWithType.id);
+                if (exists) {
+                    return prev;
+                }
+                return [...prev, messageWithType];
+            });
         };
 
         const handleMessagesReadByOther = ({ chatId: readChatId, messageIds }: any) => {
-            // Check both currentChatIdRef and chatInfo.chatId for direct chats
             const isCurrentChat = readChatId === currentChatIdRef.current || 
                                  readChatId === chatInfo?.chatId ||
                                  (chatId === 'general' && readChatId === 'general');
@@ -241,11 +243,9 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
         const handleGeneralChatUpdate = ({ participantsCount, onlineCount }: any) => {
             if (currentChatIdRef.current === 'general') {
                 setChatInfo((prev: any) => {
-                    // Don't update if prev is null or undefined
                     if (!prev) {
                         return prev;
                     }
-                    // Only update if values actually changed to prevent unnecessary re-renders
                     if (prev.participantsCount === participantsCount && prev.onlineCount === onlineCount) {
                         return prev;
                     }
@@ -289,21 +289,17 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
         };
     }, [socket, user, navigate]);
 
-    // Separate useEffect for joining/leaving chats - only depends on chatId and chatInfo.chatId
     useEffect(() => {
         if (!socket || !chatId) {
             return;
         }
 
-        // For general chat, we can join immediately
         if (chatId === 'general') {
             if (joinedChatIdRef.current !== 'general') {
-                // Leave previous chat if any
                 if (joinedChatIdRef.current && joinedChatIdRef.current !== 'general') {
                     socket.emit("leave_chat", joinedChatIdRef.current);
                 }
                 
-                // Join general chat
                 currentChatIdRef.current = 'general';
                 joinedChatIdRef.current = 'general';
                 socket.emit("join_chat", 'general');
@@ -311,29 +307,23 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
             return;
         }
 
-        // For direct chats, wait for chatInfo to be loaded to get the resolved UUID
         if (!chatInfo) {
             return;
         }
 
-        // Determine the socket chatId (UUID for direct chats)
         const socketChatId = chatInfo.chatId || chatId;
 
-        // Only join if we haven't already joined this chat
         if (joinedChatIdRef.current !== socketChatId) {
-            // Leave previous chat if any
             if (joinedChatIdRef.current && joinedChatIdRef.current !== socketChatId) {
                 socket.emit("leave_chat", joinedChatIdRef.current);
             }
             
-            // Join new chat
             currentChatIdRef.current = socketChatId;
             joinedChatIdRef.current = socketChatId;
             socket.emit("join_chat", socketChatId);
         }
 
         return () => {
-            // Leave chat room when component unmounts or chatId changes
             if (joinedChatIdRef.current && socket) {
                 socket.emit("leave_chat", joinedChatIdRef.current);
                 joinedChatIdRef.current = null;
@@ -348,9 +338,6 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
             return;
         }
 
-        // Check if we already have chatInfo loaded for this chat
-        // For direct chats: check if chatInfo.chatId matches the resolved UUID we loaded
-        // For general: check if chatInfo exists and chatId is 'general'
         const isGeneral = chatId === 'general';
         const alreadyLoaded = chatInfo && (
             (isGeneral && chatInfo.chatId === 'general') ||
@@ -360,10 +347,7 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
             ))
         );
 
-        // Don't reload if we already have the data for this chat
         if (alreadyLoaded) {
-            // Still need to check if chatId changed from username to UUID or vice versa
-            // If chatId is username but we have UUID loaded, or vice versa, we're good
             if (isGeneral || (chatInfo.chatId && (chatInfo.chatId === chatId || loadedChatIdRef.current === chatId))) {
                 return;
             }
@@ -381,7 +365,6 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
         api
             .get(`/chats/${chatId}`)
             .then((res) => {
-                // Only process response if this is still the current request
                 if (currentRequestChatIdRef.current !== chatId) {
                     return;
                 }
@@ -392,13 +375,9 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                 setIsLoadingChatInfo(false);
                 loadedChatIdRef.current = resolvedChatId;
                 
-                // Debug: check if updated_at is present
                 if (res.data.user && !res.data.user.updated_at) {
                     console.warn('updated_at missing in user data:', res.data.user);
                 }
-                
-                // Socket join will be handled by the separate useEffect
-                // that watches chatInfo.chatId
                 
              
                 setTimeout(() => {
@@ -416,12 +395,14 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                     api
                         .get(`/chats/${resolvedChatId}/messages`)
                         .then((msgRes) => {
-                            // Double check we're still on the same chat
                             if (loadedChatIdRef.current !== resolvedChatId) {
                                 return;
                             }
                             
-                            const loadedMessages = msgRes.data.reverse();
+                            const loadedMessages = msgRes.data.reverse().map((msg: Message) => ({
+                                ...msg,
+                                message_type: msg.message_type || (msg.game_invite_data ? 'game_invite' : 'text')
+                            }));
                             setMessages(loadedMessages);
 
                             const hasUnread = loadedMessages.some((msg: Message) => !msg.is_read && msg.user_id !== user?.id);
@@ -442,7 +423,6 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                 }
             })
             .catch((error) => {
-                // Only process error if this is still the current request
                 if (currentRequestChatIdRef.current !== chatId) {
                     return;
                 }
@@ -478,7 +458,6 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
             return;
         }
 
-        // Check if updated_at exists in user or targetUser
         const userData = chatInfo.user || chatInfo.targetUser;
         if (!userData?.updated_at) {
             console.warn('updated_at missing in chatInfo:', { 
@@ -502,7 +481,6 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
     useEffect(() => {
         if (!chatId || !user || !chatInfo) return;
 
-        // Use the real chatId (UUID for direct chats) from chatInfo or currentChatIdRef
         const realChatId = chatId === 'general' ? 'general' : (chatInfo?.chatId || currentChatIdRef.current || chatId);
         
         if (!realChatId) return;
@@ -557,7 +535,6 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
         }, 1000);
 
         try {
-            // Use resolved chatId from chatInfo (UUID for direct chats) or currentChatIdRef
             let finalChatId = chatId === 'general' ? 'general' : (chatInfo?.chatId || currentChatIdRef.current || chatId);
 
             if (!chatInfo?.chatExists && chatInfo?.privacy_type === "private") {
@@ -567,7 +544,6 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                     setChatInfo({ ...chatInfo, chatId: finalChatId, chatExists: true });
                     currentChatIdRef.current = finalChatId;
                     socket.emit("join_chat", finalChatId);
-                    // Keep username in URL if available, otherwise use chatId
                     const routeId = chatInfo.targetUser?.login || finalChatId;
                     setChatId(routeId);
                     navigate(`/app/msg/${routeId}`, { replace: true });
@@ -610,8 +586,6 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
     const sendMessage = async () => {
         if (!socket || !text.trim() || !chatId) return;
 
-        // Use resolved chatId from chatInfo (UUID for direct chats) or currentChatIdRef
-        // For general chat, use 'general'
         let finalChatId = chatId === 'general' ? 'general' : (chatInfo?.chatId || currentChatIdRef.current || chatId);
 
         if (!chatInfo?.chatExists && chatInfo?.privacy_type === "private") {
@@ -621,7 +595,6 @@ const Chat: React.FC<{ chatId: string | null; setChatId: (id: string | null) => 
                 setChatInfo({ ...chatInfo, chatId: finalChatId, chatExists: true });
                 currentChatIdRef.current = finalChatId;
                 socket.emit("join_chat", finalChatId);
-                // Keep username in URL if available, otherwise use chatId
                 const routeId = chatInfo.targetUser?.login || finalChatId;
                 setChatId(routeId);
                 navigate(`/app/msg/${routeId}`, { replace: true });

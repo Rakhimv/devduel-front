@@ -1,14 +1,15 @@
-export const getAvatarUrl = (avatar: string | null | undefined): string => {
+export const getAvatarUrl = (avatar: string | null | undefined, cacheBust?: boolean): string => {
   const defaultAvatar = "/avatars/default.png";
+  const timestamp = cacheBust ? `?t=${Date.now()}` : '';
   
   if (!avatar) {
-    return `${import.meta.env.VITE_BACKEND_URL}${defaultAvatar}`;
+    return `${import.meta.env.VITE_BACKEND_URL}${defaultAvatar}${timestamp}`;
   }
   
   if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
-    return avatar;
+    return avatar + timestamp;
   }
   
-  return `${import.meta.env.VITE_BACKEND_URL}${avatar}`;
+  return `${import.meta.env.VITE_BACKEND_URL}${avatar}${timestamp}`;
 };
 

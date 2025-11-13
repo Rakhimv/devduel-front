@@ -5,7 +5,7 @@ import { FaGamepad, FaComments, FaTrophy, FaHeadset, FaUserShield } from "react-
 import { getAvatarUrl } from "../utils/avatarUrl";
 
 const Header = () => {
-    const { user } = useAuth();
+    const { user, avatarVersion } = useAuth();
     const { gameSessionId } = useGame();
     const navigate = useNavigate();
     const location = useLocation();
@@ -46,7 +46,7 @@ const Header = () => {
                     <button
                         onClick={() => handleNavigation('/rating')}
                         className={`p-2 transition-colors cursor-pointer ${isActive('/rating')
-                                ? 'text-primary'
+                                ? 'text-yellow-300'
                                 : 'text-white/40 hover:text-white'
                             }`}
                         title="Рейтинг"
@@ -92,15 +92,15 @@ const Header = () => {
                     )}
                 </div>
 
-                {/* Справа - Профиль */}
                 <button
                     onClick={() => handleNavigation('/profile')}
-                    className={`ml-auto flex items-center gap-3 p-2 transition-colors cursor-pointe`}
+                    className={`ml-auto flex items-center gap-3 p-2 transition-colors cursor-pointer`}
                     title="Профиль"
                 >
                     <img
+                        key={avatarVersion}
                         className="w-10 h-10 rounded-full border-2 border-primary-bdr object-cover"
-                        src={getAvatarUrl(user?.avatar)}
+                        src={getAvatarUrl(user?.avatar, true)}
                         alt="Avatar"
                     />
                     <div className="flex flex-col text-left">

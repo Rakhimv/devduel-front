@@ -7,26 +7,27 @@ interface GameInviteProps {
   onAccept: () => void;
   onDecline: () => void;
   isFromCurrentUser?: boolean;
+  isToCurrentUser?: boolean;
   gameEndReason?: string;
   gameDuration?: number;
   isInGame?: boolean;
 }
 
-const GameInvite: React.FC<GameInviteProps> = ({ invite, onAccept, onDecline, isFromCurrentUser = false, gameEndReason, gameDuration, isInGame = false }) => {
+const GameInvite: React.FC<GameInviteProps> = ({ invite, onAccept, onDecline, isFromCurrentUser = false, isToCurrentUser = false, gameEndReason, gameDuration, isInGame = false }) => {
   const [timeLeft, setTimeLeft] = useState(30);
 
   useEffect(() => {
     if (invite.status !== 'pending') return;
-    
+
     const inviteTime = new Date(invite.timestamp).getTime();
     const now = Date.now();
     const elapsed = Math.floor((now - inviteTime) / 1000);
     const remaining = Math.max(0, 30 - elapsed);
-    
+
     setTimeLeft(remaining);
-    
+
     if (remaining <= 0) return;
-    
+
     const interval = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
@@ -36,13 +37,13 @@ const GameInvite: React.FC<GameInviteProps> = ({ invite, onAccept, onDecline, is
         return prev - 1;
       });
     }, 1000);
-    
+
     return () => clearInterval(interval);
   }, [invite.timestamp, invite.status]);
   if (isFromCurrentUser) {
     let statusColor = 'bg-yellow-400';
     let statusText = 'Ожидание...';
-    
+
     if (invite.status === 'accepted') {
       statusColor = 'bg-green-400';
       statusText = 'Принято';
@@ -82,10 +83,10 @@ const GameInvite: React.FC<GameInviteProps> = ({ invite, onAccept, onDecline, is
     );
   }
 
-    if (invite.status === 'declined' || invite.status === 'expired' || invite.status === 'accepted' || invite.status === 'abandoned') {
+  if (invite.status === 'declined' || invite.status === 'expired' || invite.status === 'accepted' || invite.status === 'abandoned') {
     let statusColor = 'bg-gray-400';
     let statusText = 'Недоступно';
-    
+
     if (invite.status === 'accepted') {
       statusColor = 'bg-green-400';
       statusText = 'Принято';
@@ -126,8 +127,36 @@ const GameInvite: React.FC<GameInviteProps> = ({ invite, onAccept, onDecline, is
     );
   }
 
+  // If user is not the recipient and not the sender, show info view
+  if (!isFromCurrentUser && !isToCurrentUser) {
+    return (
+      <div className="bg-primary-bg p-4 max-w-md relative">
+        <div className="text-center">
+          <div className="flex items-center justify-center mb-3 gap-3">
+            <AvatarWithStatus avatar={invite.fromAvatar} name={invite.fromName || invite.fromUsername} />
+            <span className="text-2xl">🎮</span>
+            <AvatarWithStatus avatar={invite.toAvatar} name={invite.toName || invite.toUsername} />
+          </div>
+          <h3 className="text-lg font-bold text-white mb-2">
+            Приглашение в игру
+          </h3>
+          <p className="text-white/90 text-sm mb-4">
+            <span className="font-semibold">{invite.fromName || invite.fromUsername}</span> пригласил <span className="font-semibold">{invite.toName || invite.toUsername}</span> в игру
+          </p>
+          {invite.status === 'pending' && (
+            <div className="inline-flex items-center px-3 py-1 bg-secondary-bg">
+              <div className="w-2 h-2 rounded-full mr-2 bg-yellow-400 animate-pulse"></div>
+              <span className="text-white/80 text-xs">Ожидание ответа</span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // If user is the recipient, show buttons
   return (
-    <div className="bg-transparent p-0">
+    <div className="bg-transparent p-0 flex flex-col items-center">
       <div className="flex items-center justify-center mb-3 gap-3">
         <AvatarWithStatus avatar={invite.fromAvatar} name={invite.fromName || invite.fromUsername} />
         <span className="text-2xl">🎮</span>
@@ -137,41 +166,40 @@ const GameInvite: React.FC<GameInviteProps> = ({ invite, onAccept, onDecline, is
         <span className="text-sm text-white/70">Приглашение в игру</span>
       </div>
       <p className="text-sm text-white/90 mb-3">
-        <span className="font-semibold">{invite.fromName || invite.fromUsername}</span> приглашает вас в игру!
+        <span className="font-semibold text-center">{invite.fromName || invite.fromUsername}</span> приглашает вас в игру!
       </p>
-      
+
       <div className="flex gap-2">
         <button
           onClick={onAccept}
           disabled={isInGame}
-          className={`px-3 py-1.5 font-semibold transition-colors text-xs cursor-pointer ${
-            isInGame 
-              ? 'cursor-not-allowed bg-gray-500 text-gray-300' 
+          className={`px-3 py-1.5 font-semibold transition-colors text-xs cursor-pointer ${isInGame
+              ? 'cursor-not-allowed bg-gray-500 text-gray-300'
               : 'bg-primary text-black hover:bg-primary/80'
-          }`}
+            }`}
         >
-          {isInGame ? '🚫 В игре' : '✅ Принять'}
+          {isInGame ? 'В игре' : 'Принять'}
         </button>
         <button
           onClick={onDecline}
           className="bg-secondary-bg  hover:bg-primary-bg text-white px-3 py-1.5 font-semibold transition-colors text-xs cursor-pointer"
         >
-          ❌ Отклонить
+          Отклонить
         </button>
       </div>
-      
+
       {gameEndReason && gameDuration && (
         <div className="mt-2 p-2 bg-secondary-bg  text-xs">
           <p className="text-primary font-semibold">🎮 Игра завершена!</p>
           <p className="text-white/80">
-            {gameEndReason === 'timeout' ? 'Время истекло' : 
-             gameEndReason === 'player_left' ? 'Игрок покинул игру' : 
-             'Игра завершена'}
+            {gameEndReason === 'timeout' ? 'Время истекло' :
+              gameEndReason === 'player_left' ? 'Игрок покинул игру' :
+                'Игра завершена'}
           </p>
           <p className="text-white/60">Длительность: {Math.round(gameDuration / 60000)} минут</p>
         </div>
       )}
-      
+
       {invite.status === 'pending' && (
         <p className="text-white/50 text-xs mt-2">
           Приглашение активно {timeLeft} сек

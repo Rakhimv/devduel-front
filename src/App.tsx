@@ -1,8 +1,9 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { GameProvider } from './context/GameContext';
 import { CodeProvider } from './context/CodeContext';
 import GameNavigationGuard from './components/GameNavigationGuard';
+import MaintenanceGuard from './components/MaintenanceGuard';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Landing from './pages/Landing';
@@ -19,8 +20,8 @@ import { HeaderLayout } from './layouts/HeaderLayout';
 import MobileWarning from './components/MobileWarning';
 import { useState, useEffect } from 'react';
 
-
-function App() {
+function AppContent() {
+  const location = useLocation();
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -33,55 +34,62 @@ function App() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  if (isMobile) {
+  if (isMobile && location.pathname !== '/') {
     return <MobileWarning />;
   }
 
+  return (
+    <Routes>
+      <Route path='/anim' element={<TitleAnimation />} />
+
+      <Route path="/" element={<Landing />} />
+
+      <Route element={<UserExRoute />}>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/banned" element={<Banned />} />
+      </Route>
+
+      <Route element={<PrivateRout />}>
+        <Route path="/admin" element={
+          <HeaderLayout>
+            <Admin />
+          </HeaderLayout>
+        } />
+        
+        <Route element={<MaintenanceGuard />}>
+          <Route path="/app" element={<Dashboard />} />
+          <Route path="/app/msg/" element={<Dashboard />} />
+          <Route path="/app/msg/:id" element={<Dashboard />} />
+          <Route path="/rating" element={
+            <HeaderLayout>
+              <Rating />
+            </HeaderLayout>
+          } />
+          <Route path="/profile" element={
+            <HeaderLayout>
+              <Profile />
+            </HeaderLayout>
+          } />
+          <Route path="/game/:sessionId" element={
+            <HeaderLayout>
+              <Game />
+            </HeaderLayout>
+          } />
+        </Route>
+      </Route>
+    </Routes>
+  );
+}
+
+function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <GameProvider>
           <CodeProvider>
             <GameNavigationGuard>
-              <Routes>
-                <Route path='/anim' element={<TitleAnimation />} />
-
-                {/* Лендинг - доступен всем */}
-                <Route path="/" element={<Landing />} />
-
-                <Route element={<UserExRoute />}>
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/register" element={<Register />} />
-                  <Route path="/banned" element={<Banned />} />
-                </Route>
-
-                {/* Защищенные маршруты - требуют авторизации */}
-                <Route element={<PrivateRout />}>
-                  <Route path="/app" element={<Dashboard />} />
-                  <Route path="/app/msg/" element={<Dashboard />} />
-                  <Route path="/app/msg/:id" element={<Dashboard />} />
-                  <Route path="/rating" element={
-                    <HeaderLayout>
-                      <Rating />
-                    </HeaderLayout>
-                  } />
-                  <Route path="/profile" element={
-                    <HeaderLayout>
-                      <Profile />
-                    </HeaderLayout>
-                  } />
-                  <Route path="/game/:sessionId" element={
-                    <HeaderLayout>
-                      <Game />
-                    </HeaderLayout>
-                  } />
-                  <Route path="/admin" element={
-                    <HeaderLayout>
-                      <Admin />
-                    </HeaderLayout>
-                  } />
-                </Route>
-              </Routes>
+              <AppContent />
             </GameNavigationGuard>
           </CodeProvider>
         </GameProvider>

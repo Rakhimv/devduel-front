@@ -87,7 +87,7 @@ const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(({
 
   return (
     <div className="relative w-full">
-      <div className="flex items-end gap-2 bg-secondary-bg border border-primary-bdr p-2  focus-within:border focus-within:border-primary-bdr transition-all ">
+      <div className="flex items-end gap-2 p-2 pr-6 pl-0 transition-all ">
 
 
         <textarea
@@ -103,7 +103,7 @@ const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(({
 
         <div className="relative">
 
-          <div className='flex gap-[10px] h-[30px] items-center'>
+          <div className='flex gap-6 h-[30px] items-center'>
             <button
               type="button"
               onClick={toggleEmojiPicker}
@@ -111,7 +111,7 @@ const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(({
               disabled={disabled}
               aria-label="Toggle emoji picker"
             >
-              {showEmojiPicker ? <FaSmile /> : <FaRegSmile />}
+              {showEmojiPicker ? <FaSmile size={25} /> : <FaRegSmile size={25} />}
             </button>
             <button
               type="button"
@@ -123,12 +123,12 @@ const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(({
               className={`text-2xl transition-transform rounded  ${value.trim().length > 0 ? "" : "opacity-20"} cursor-pointer`}
               disabled={disabled}
             >
-              <IoSend />
+              <IoSend size={25} />
             </button>
           </div>
 
           {showEmojiPicker && (
-            <div 
+            <div
               ref={emojiPickerRef}
               className="absolute bottom-full right-0 mb-2 z-50 shadow-2xl"
               style={{ maxHeight: '400px' }}
@@ -148,7 +148,7 @@ const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(({
               />
             </div>
           )}
-         
+
         </div>
 
 

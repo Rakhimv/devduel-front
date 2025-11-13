@@ -10,9 +10,7 @@ const Landing = () => {
   const { isAuth } = useAuth();
 
   const handleDownload = (platform: 'windows' | 'linux' | 'macos') => {
-    // TODO: Добавить логику скачивания для соответствующей платформы
     console.log(`Скачать для ${platform}`);
-    // Пока просто показываем сообщение
     alert(`Скачивание для ${platform} скоро будет доступно!`);
   };
 
@@ -32,7 +30,6 @@ const Landing = () => {
         transition={{ duration: 0.6 }}
         className="max-w-4xl w-full text-center space-y-8"
       >
-        {/* Заголовок */}
         <motion.h1
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -51,14 +48,12 @@ const Landing = () => {
           Соревнуйся в программировании с другими разработчиками. Решай задачи, повышай уровень, становись лучше!
         </motion.p>
 
-        {/* Кнопки скачивания */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.6 }}
           className="flex flex-wrap justify-center gap-4 mt-12"
         >
-          {/* Windows */}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -72,7 +67,6 @@ const Landing = () => {
             </div>
           </motion.button>
 
-          {/* Linux */}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -86,7 +80,6 @@ const Landing = () => {
             </div>
           </motion.button>
 
-          {/* macOS */}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -100,7 +93,6 @@ const Landing = () => {
             </div>
           </motion.button>
 
-          {/* Веб версия */}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -115,7 +107,6 @@ const Landing = () => {
           </motion.button>
         </motion.div>
 
-        {/* Дополнительная информация */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -138,7 +129,6 @@ const Landing = () => {
           </div>
         </motion.div>
 
-        {/* Кнопки авторизации для неавторизованных пользователей */}
         {!isAuth && (
           <motion.div
             initial={{ opacity: 0 }}

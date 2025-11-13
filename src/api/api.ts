@@ -21,8 +21,6 @@ api.interceptors.response.use(
     
     const originalRequest = error.config as any;
     
-    // Не пытаемся обновлять токен для /auth/me, /auth/refresh, /auth/logout, /auth/login, /auth/register
-    // /auth/me используется для проверки авторизации, и если она падает, значит пользователь не залогинен
     if (error.response?.status === 401 && 
         !originalRequest._retry && 
         !originalRequest.url?.includes('/auth/refresh') &&
@@ -36,8 +34,6 @@ api.interceptors.response.use(
         await api.post('/auth/refresh');
         return api(originalRequest);
       } catch (refreshError) {
-        // Если не можем обновить токен, просто реджектим ошибку
-        // Редирект будет сделан в PrivateRoute на основе isAuth
         return Promise.reject(refreshError);
       }
     }
@@ -76,9 +72,7 @@ export const getUser = async (): Promise<User> => {
   try {
     const response = await api.get("/auth/me");
     
-    // Проверяем, что мы получили валидные данные пользователя
     if (!response.data || !response.data.id) {
-      // Если данные не валидны, выбрасываем ошибку
       const invalidError = new Error("Невалидные данные пользователя");
       (invalidError as any).status = 401;
       throw invalidError;
@@ -86,12 +80,10 @@ export const getUser = async (): Promise<User> => {
     
     return response.data;
   } catch (error) {
-    // Если это наша ошибка (например, из проверки валидности данных), просто пробрасываем её
     if (error instanceof Error && (error as any).status === 401) {
       throw error;
     }
     
-    // Обрабатываем случай, когда пользователь забанен (403)
     if (error instanceof AxiosError && error.response?.status === 403 && error.response?.data?.is_banned) {
       const banError = new Error(error.response.data.message || "Пользователь забанен");
       (banError as any).isBanned = true;
@@ -99,25 +91,20 @@ export const getUser = async (): Promise<User> => {
       throw banError;
     }
     
-    // Обрабатываем случай, когда пользователь не авторизован (401)
-    // Это нормальная ситуация - пользователь просто не залогинен
     if (error instanceof AxiosError && error.response?.status === 401) {
       const authError = new Error("Пользователь не авторизован");
       (authError as any).status = 401;
       throw authError;
     }
     
-    // Обрабатываем сетевые ошибки, таймауты и другие проблемы
     if (error instanceof AxiosError) {
-      // Если нет ответа от сервера (сеть, таймаут, CORS)
       if (!error.response) {
         const networkError = new Error("Ошибка сети или сервер недоступен");
         (networkError as any).isNetworkError = true;
-        (networkError as any).status = 401; // Считаем сетевую ошибку как неавторизованный
+        (networkError as any).status = 401;
         throw networkError;
       }
       
-      // Для других ошибок выбрасываем стандартную ошибку
       const otherError = new Error(
         error.response?.data?.message || "Ошибка при получении данных пользователя"
       );
@@ -125,15 +112,12 @@ export const getUser = async (): Promise<User> => {
       throw otherError;
     }
     
-    // Для всех остальных ошибок (включая наши собственные ошибки)
-    // Если у ошибки уже есть status, пробрасываем её
     if (error instanceof Error && (error as any).status) {
       throw error;
     }
     
-    // Для всех остальных ошибок создаем новую
     const unknownError = new Error("Ошибка при получении данных пользователя");
-    (unknownError as any).status = 401; // По умолчанию считаем неавторизованным
+    (unknownError as any).status = 401;
     throw unknownError;
   }
 };
@@ -290,5 +274,19 @@ export const adminApi = {
   testTask: async (taskId: number, languageId: number, code: string) => {
     const response = await api.post(`/admin/tasks/${taskId}/test`, { languageId, code });
     return response.data;
+  },
+  getMaintenanceMode: async () => {
+    const response = await api.get("/admin/maintenance-mode");
+    return response.data;
+  },
+  setMaintenanceMode: async (enabled: boolean) => {
+    const response = await api.post("/admin/maintenance-mode", { enabled });
+    return response.data;
   }
+};
+
+// Public API for checking maintenance mode (no auth required)
+export const checkMaintenanceMode = async () => {
+  const response = await api.get("/maintenance-mode");
+  return response.data;
 };

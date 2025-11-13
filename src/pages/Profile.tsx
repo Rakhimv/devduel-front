@@ -11,7 +11,7 @@ import Modal from '../components/ui/Modal';
 import { motion } from 'framer-motion';
 
 const Profile: React.FC = () => {
-  const { user, logout, refreshUser } = useAuth();
+  const { user, logout, refreshUser, avatarVersion } = useAuth();
   const navigate = useNavigate();
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -106,7 +106,8 @@ const Profile: React.FC = () => {
               <div className="flex flex-col md:flex-row items-center md:items-start gap-6 mb-8">
                 <div className="relative">
                   <img 
-                    src={getAvatarUrl(user?.avatar)}
+                    key={avatarVersion}
+                    src={getAvatarUrl(user?.avatar, true)}
                     alt={user?.name}
                     className="w-32 h-32 border-2 border-primary-bdr object-cover"
                   />
@@ -265,9 +266,13 @@ const Profile: React.FC = () => {
         onClose={() => {
           setIsAvatarModalOpen(false);
         }}
-        onSuccess={(msg) => {
+        onSuccess={async (msg) => {
           handleSuccess(msg);
-          refreshUser(); // Обновляем данные после успешного изменения аватара
+          try {
+            await refreshUser();
+          } catch (error) {
+            console.warn('Error refreshing user after avatar change:', error);
+          }
         }}
         onError={handleError}
       />
