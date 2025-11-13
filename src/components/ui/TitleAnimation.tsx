@@ -51,7 +51,7 @@ const TitleAnimation = () => {
                             <DecryptedText
                                 text="ev"
                                 speed={100}
-                                maxIterations={20}
+                                maxIterations={10}
                                 characters="ABCD1234{#/]"
                                 className="revealed"
                                 parentClassName="all-letters"
@@ -66,7 +66,7 @@ const TitleAnimation = () => {
                             <DecryptedText
                                 text="uel"
                                 speed={100}
-                                maxIterations={20}
+                                maxIterations={10}
                                 characters="ABCD1234!{#/]"
                                 className="revealed"
                                 parentClassName="all-letters"
