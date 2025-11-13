@@ -31,6 +31,9 @@ export const useSocket = (isAuth: boolean) => {
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
+      transports: ['websocket', 'polling'],
+      upgrade: true,
+      rememberUpgrade: true
     });
 
     newSocket.on('connect', () => {

@@ -3,16 +3,19 @@ import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import AvatarChangeModal from '../components/ui/AvatarChangeModal';
 import PasswordChangeModal from '../components/ui/PasswordChangeModal';
+import NameChangeModal from '../components/ui/NameChangeModal';
 import { getAvatarUrl } from '../utils/avatarUrl';
-import { FaSignOutAlt, FaGithub, FaGoogle, FaYandex, FaTrash, FaUser, FaEnvelope, FaIdCard, FaShieldAlt, FaGamepad, FaTrophy, FaChartLine } from 'react-icons/fa';
+import { FaSignOutAlt, FaGithub, FaGoogle, FaYandex, FaTrash, FaUser, FaEnvelope, FaIdCard, FaShieldAlt, FaGamepad, FaTrophy, FaChartLine, FaEdit } from 'react-icons/fa';
 import { deleteAccount } from '../api/api';
 import Modal from '../components/ui/Modal';
+import { motion } from 'framer-motion';
 
 const Profile: React.FC = () => {
   const { user, logout, refreshUser } = useAuth();
   const navigate = useNavigate();
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [isNameModalOpen, setIsNameModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
@@ -93,7 +96,12 @@ const Profile: React.FC = () => {
         )}
 
         <div className="max-w-4xl mx-auto">
-          <div className="bg-primary-bg border border-primary-bdr mb-6">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="bg-primary-bg border border-primary-bdr mb-6"
+          >
             <div className="p-8">
               <div className="flex flex-col md:flex-row items-center md:items-start gap-6 mb-8">
                 <div className="relative">
@@ -110,7 +118,16 @@ const Profile: React.FC = () => {
                   </button>
                 </div>
                 <div className="flex-1 text-center md:text-left">
-                  <h1 className="text-3xl font-bold mb-2">{user?.name}</h1>
+                  <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
+                    <h1 className="text-3xl font-bold">{user?.name}</h1>
+                    <button
+                      onClick={() => setIsNameModalOpen(true)}
+                      className="text-white/60 hover:text-primary transition-colors cursor-pointer"
+                      title="Изменить имя"
+                    >
+                      <FaEdit size={18} />
+                    </button>
+                  </div>
                   <p className="text-white/60 text-lg mb-4">@{user?.login}</p>
                   <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
                     <div className={`flex items-center gap-2 px-3 py-1 border ${getProviderColor(user?.provider || 'local')}`}>
@@ -125,36 +142,56 @@ const Profile: React.FC = () => {
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <div className="bg-primary-bg border border-primary-bdr p-6">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.1 }}
+              className="bg-primary-bg border border-primary-bdr p-6"
+            >
               <div className="flex items-center gap-3 mb-4">
                 <FaGamepad className="text-primary" size={24} />
                 <h3 className="text-lg font-semibold">Игр сыграно</h3>
               </div>
               <div className="text-3xl font-bold text-primary">{user?.games_count || 0}</div>
-            </div>
+            </motion.div>
 
-            <div className="bg-primary-bg border border-primary-bdr p-6">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.2 }}
+              className="bg-primary-bg border border-primary-bdr p-6"
+            >
               <div className="flex items-center gap-3 mb-4">
                 <FaTrophy className="text-primary" size={24} />
                 <h3 className="text-lg font-semibold">Побед</h3>
               </div>
               <div className="text-3xl font-bold text-primary">{user?.wins_count || 0}</div>
-            </div>
+            </motion.div>
 
-            <div className="bg-primary-bg border border-primary-bdr p-6">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.3 }}
+              className="bg-primary-bg border border-primary-bdr p-6"
+            >
               <div className="flex items-center gap-3 mb-4">
                 <FaChartLine className="text-primary" size={24} />
                 <h3 className="text-lg font-semibold">Винрейт</h3>
               </div>
               <div className="text-3xl font-bold text-primary">{winRate}%</div>
-            </div>
+            </motion.div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div className="bg-primary-bg border border-primary-bdr p-6">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.4 }}
+              className="bg-primary-bg border border-primary-bdr p-6"
+            >
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <FaUser className="text-primary" size={20} />
                 Личная информация
@@ -182,9 +219,14 @@ const Profile: React.FC = () => {
                   </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
 
-            <div className="bg-primary-bg border border-primary-bdr p-6">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.5 }}
+              className="bg-primary-bg border border-primary-bdr p-6"
+            >
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <FaShieldAlt className="text-primary" size={20} />
                 Настройки аккаунта
@@ -213,7 +255,7 @@ const Profile: React.FC = () => {
                   Удалить аккаунт
                 </button>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </div>
@@ -237,6 +279,17 @@ const Profile: React.FC = () => {
           handleSuccess(msg);
         }}
         onError={handleError}
+      />
+
+      <NameChangeModal
+        isOpen={isNameModalOpen}
+        onClose={() => setIsNameModalOpen(false)}
+        onSuccess={(msg) => {
+          handleSuccess(msg);
+          refreshUser();
+        }}
+        onError={handleError}
+        currentName={user?.name || ''}
       />
 
       <Modal

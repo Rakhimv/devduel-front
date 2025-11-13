@@ -71,7 +71,7 @@ const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({
     <Modal isOpen={isOpen} onClose={handleClose} title="Изменить пароль">
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-white/80 mb-2">
             Новый пароль
           </label>
           <input
@@ -80,12 +80,12 @@ const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             disabled={isChanging}
-            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 disabled:opacity-50"
+            className="dd-inp w-full px-3 py-2 bg-secondary-bg text-white disabled:opacity-50 disabled:cursor-not-allowed"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-white/80 mb-2">
             Подтвердите пароль
           </label>
           <input
@@ -94,32 +94,32 @@ const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             disabled={isChanging}
-            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 disabled:opacity-50"
+            className="dd-inp w-full px-3 py-2 bg-secondary-bg text-white disabled:opacity-50 disabled:cursor-not-allowed"
           />
         </div>
 
-        <div className="bg-gray-800 p-3 rounded-lg">
-          <p className="text-sm text-gray-300">
+        <div className="bg-secondary-bg border border-primary-bdr p-3">
+          <p className="text-sm text-white/80">
             <strong>Требования к паролю:</strong>
           </p>
-          <ul className="text-xs text-gray-400 mt-1 space-y-1">
+          <ul className="text-xs text-white/60 mt-1 space-y-1">
             <li>• Минимум 6 символов</li>
             <li>• Рекомендуется использовать буквы, цифры и символы</li>
           </ul>
         </div>
 
-        <div className="flex justify-end space-x-3 pt-4">
+        <div className="flex justify-end gap-3 pt-4">
           <button
             onClick={handleClose}
             disabled={isChanging}
-            className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors disabled:opacity-50"
+            className="px-4 py-2 bg-secondary-bg border border-primary-bdr text-white hover:bg-primary-bg transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             Отмена
           </button>
           <button
             onClick={handlePasswordChange}
             disabled={isChanging || !newPassword || !confirmPassword}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="dd-btn px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isChanging ? 'Изменяем...' : 'Изменить пароль'}
           </button>

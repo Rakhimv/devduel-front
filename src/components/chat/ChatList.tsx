@@ -145,7 +145,11 @@ const ChatList: React.FC<ChatListProps> = ({ setChatId }) => {
           );
         }
 
-        fetchChats();
+        // Only fetch chats if it's not General chat (General should always exist)
+        // For other chats, fetch only if we don't have it
+        if (chatId !== 'general') {
+          fetchChats();
+        }
         return prev;
       });
     };

@@ -16,9 +16,27 @@ import Profile from './pages/Profile';
 import Admin from './pages/Admin';
 import Banned from './pages/Banned';
 import { HeaderLayout } from './layouts/HeaderLayout';
+import MobileWarning from './components/MobileWarning';
+import { useState, useEffect } from 'react';
 
 
 function App() {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  if (isMobile) {
+    return <MobileWarning />;
+  }
+
   return (
     <BrowserRouter>
       <AuthProvider>

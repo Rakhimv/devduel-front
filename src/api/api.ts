@@ -241,6 +241,19 @@ export const deleteAccount = async (): Promise<void> => {
   }
 };
 
+export const changeName = async (name: string): Promise<{ name: string }> => {
+  try {
+    const response = await api.post("/auth/change-name", { name });
+    return response.data;
+  } catch (error) {
+    throw new Error(
+      error instanceof AxiosError && error.response?.data?.error
+        ? error.response.data.error
+        : "Ошибка при изменении имени"
+    );
+  }
+};
+
 export const adminApi = {
   getUsers: async () => {
     const response = await api.get("/admin/users");

@@ -36,11 +36,10 @@ const Header = () => {
                 <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-2">
                     <button
                         onClick={() => handleNavigation('/app')}
-                        className={`p-2 transition-colors cursor-pointer ${
-                            isActive('/msg') 
-                                ? 'text-primary' 
+                        className={`p-2 transition-colors cursor-pointer ${isActive('/msg')
+                                ? 'text-primary'
                                 : 'text-white/40 hover:text-white'
-                        }`}
+                            }`}
                         title="Чат"
                     >
                         <FaComments size={30} />
@@ -48,36 +47,33 @@ const Header = () => {
 
                     <button
                         onClick={() => handleNavigation('/rating')}
-                        className={`p-2 transition-colors cursor-pointer ${
-                            isActive('/rating') 
-                                ? 'text-primary' 
+                        className={`p-2 transition-colors cursor-pointer ${isActive('/rating')
+                                ? 'text-primary'
                                 : 'text-white/40 hover:text-white'
-                        }`}
+                            }`}
                         title="Рейтинг"
                     >
                         <FaTrophy size={30} />
                     </button>
 
-                    <button
+                    {user?.login !== 'support' && <button
                         onClick={() => handleNavigation('/app/msg/support')}
-                        className={`p-2 transition-colors cursor-pointer ${
-                            isActive('/msg/support') 
-                                ? 'text-primary' 
+                        className={`p-2 transition-colors cursor-pointer ${isActive('/msg/support')
+                                ? 'text-primary'
                                 : 'text-white/40 hover:text-white'
-                        }`}
+                            }`}
                         title="Поддержка"
                     >
                         <FaHeadset size={30} />
-                    </button>
+                    </button>}
 
                     {user?.role === 'admin' && (
                         <button
                             onClick={() => handleNavigation('/admin')}
-                            className={`p-2 transition-colors cursor-pointer ${
-                                isActive('/admin') 
-                                    ? 'text-primary' 
+                            className={`p-2 transition-colors cursor-pointer ${isActive('/admin')
+                                    ? 'text-primary'
                                     : 'text-white/40 hover:text-white'
-                            }`}
+                                }`}
                             title="Админ панель"
                         >
                             <FaUserShield size={30} />
@@ -87,11 +83,10 @@ const Header = () => {
                     {gameSessionId && (
                         <button
                             onClick={() => handleNavigation(`/game/${gameSessionId}`)}
-                            className={`p-2 transition-colors cursor-pointer ${
-                                isActive('/game')
+                            className={`p-2 transition-colors cursor-pointer ${isActive('/game')
                                     ? 'text-primary'
                                     : 'text-green-400'
-                            }`}
+                                }`}
                             title="Игра"
                         >
                             <FaGamepad size={30} />
@@ -102,16 +97,15 @@ const Header = () => {
                 {/* Справа - Профиль */}
                 <button
                     onClick={() => handleNavigation('/profile')}
-                    className={`ml-auto flex items-center gap-3 p-2 transition-colors cursor-pointer ${
-                        isActive('/profile') 
-                            ? 'bg-secondary-bg' 
+                    className={`ml-auto flex items-center gap-3 p-2 transition-colors cursor-pointer ${isActive('/profile')
+                            ? 'bg-secondary-bg'
                             : 'hover:bg-secondary-bg'
-                    }`}
+                        }`}
                     title="Профиль"
                 >
-                    <img 
-                        className="w-10 h-10 rounded-full border-2 border-primary-bdr object-cover" 
-                        src={getAvatarUrl(user?.avatar)} 
+                    <img
+                        className="w-10 h-10 rounded-full border-2 border-primary-bdr object-cover"
+                        src={getAvatarUrl(user?.avatar)}
                         alt="Avatar"
                     />
                     <div className="flex flex-col text-left">

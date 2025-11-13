@@ -11,34 +11,10 @@ interface MessangerProps {
 
 const Messanger = ({ initialChatId }: MessangerProps) => {
     const [chatId, setChatId] = useState<string | null>(initialChatId || null);
-    const currentRequestRef = useRef<string | null>(null);
 
     useEffect(() => {
-        if (initialChatId === 'general') {
-            currentRequestRef.current = 'general';
-            setChatId('general');
-        } else if (initialChatId) {
-            const requestId = initialChatId;
-            currentRequestRef.current = requestId;
-            
-            setChatId(initialChatId);
-            
-            api.get(`/chats/${initialChatId}`)
-                .then((res) => {
-                    if (currentRequestRef.current === requestId) {
-                        setChatId(res.data.chatId || initialChatId);
-                    }
-                })
-                .catch((error) => {
-                    console.error('Ошибка получения чата:', error);
-                    if (currentRequestRef.current === requestId) {
-                        setChatId(null);
-                    }
-                });
-        } else {
-            currentRequestRef.current = null;
-            setChatId(null);
-        }
+        // Just set the chatId directly - Chat component will handle loading
+        setChatId(initialChatId || null);
     }, [initialChatId]);
 
     return (
