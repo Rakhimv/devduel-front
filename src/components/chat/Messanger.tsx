@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef } from "react";
-import { api } from "../../api/api";
+import { useState, useEffect } from "react";
 import Chat from "./Chat"
 import ChatList from "./ChatList";
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
@@ -45,4 +44,3 @@ const Messanger = ({ initialChatId }: MessangerProps) => {
 
 
 export default Messanger;
-
