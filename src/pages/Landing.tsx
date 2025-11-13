@@ -63,7 +63,7 @@ const Landing = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => handleDownload('windows')}
-            className="flex items-center gap-3 px-6 py-4 bg-secondary-bg border border-primary-bdr hover:border-primary transition-colors group"
+            className="flex items-center cursor-pointer gap-3 px-6 py-4 bg-secondary-bg border border-primary-bdr hover:border-primary transition-colors group"
           >
             <FaWindows className="text-2xl text-primary group-hover:scale-110 transition-transform" />
             <div className="text-left">
@@ -77,7 +77,7 @@ const Landing = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => handleDownload('linux')}
-            className="flex items-center gap-3 px-6 py-4 bg-secondary-bg border border-primary-bdr hover:border-primary transition-colors group"
+            className="flex items-center cursor-pointer gap-3 px-6 py-4 bg-secondary-bg border border-primary-bdr hover:border-primary transition-colors group"
           >
             <FaLinux className="text-2xl text-primary group-hover:scale-110 transition-transform" />
             <div className="text-left">
@@ -91,7 +91,7 @@ const Landing = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => handleDownload('macos')}
-            className="flex items-center gap-3 px-6 py-4 bg-secondary-bg border border-primary-bdr hover:border-primary transition-colors group"
+            className="flex items-center cursor-pointer gap-3 px-6 py-4 bg-secondary-bg border border-primary-bdr hover:border-primary transition-colors group"
           >
             <FaApple className="text-2xl text-primary group-hover:scale-110 transition-transform" />
             <div className="text-left">

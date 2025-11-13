@@ -1,6 +1,6 @@
 import { useAuth } from "../hooks/useAuth";
 import { useGame } from "../context/GameContext";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { FaGamepad, FaComments, FaTrophy, FaHeadset, FaUserShield } from "react-icons/fa";
 import { getAvatarUrl } from "../utils/avatarUrl";
 
@@ -26,13 +26,11 @@ const Header = () => {
     return (
         <div className="w-full h-[80px] flex items-center justify-between bg-primary-bg border-b border-primary-bdr">
             <div className="flex items-center w-full h-16 px-4 relative">
-                {/* Слева - Лого */}
-                <div className="flex items-center gap-2">
+                <Link to={"/"} className="flex items-center gap-2">
                     <img src="/logo.svg" alt="DevDuel" className="w-8 h-8" />
                     <span className="text-white font-bold text-xl">DevDuel</span>
-                </div>
+                </Link>
 
-                {/* В центре - Иконки чат и рейтинг */}
                 <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-2">
                     <button
                         onClick={() => handleNavigation('/app')}
@@ -97,10 +95,7 @@ const Header = () => {
                 {/* Справа - Профиль */}
                 <button
                     onClick={() => handleNavigation('/profile')}
-                    className={`ml-auto flex items-center gap-3 p-2 transition-colors cursor-pointer ${isActive('/profile')
-                            ? 'bg-secondary-bg'
-                            : 'hover:bg-secondary-bg'
-                        }`}
+                    className={`ml-auto flex items-center gap-3 p-2 transition-colors cursor-pointe`}
                     title="Профиль"
                 >
                     <img
