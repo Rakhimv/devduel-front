@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+Sitemap: https://devduel.ru/sitemap.xml
+Disallow: /api/
+Disallow: /admin/
+Disallow: /_next/
+Disallow: /dist/
+Allow: /
+Allow: /login
+Allow: /register
+Allow: /app
+Allow: /rating
+Allow: /profile
+Crawl-delay: 1
+

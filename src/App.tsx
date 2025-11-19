@@ -16,6 +16,8 @@ import Rating from './pages/Rating';
 import Profile from './pages/Profile';
 import Admin from './pages/Admin';
 import Banned from './pages/Banned';
+import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
 import { HeaderLayout } from './layouts/HeaderLayout';
 import MobileWarning from './components/MobileWarning';
 import { useState, useEffect } from 'react';
@@ -43,6 +45,8 @@ function AppContent() {
       <Route path='/anim' element={<TitleAnimation />} />
 
       <Route path="/" element={<Landing />} />
+      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/terms" element={<Terms />} />
 
       <Route element={<UserExRoute />}>
         <Route path="/login" element={<Login />} />
