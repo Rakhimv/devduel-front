@@ -17,8 +17,6 @@ export const SEOHead: React.FC<SEOHeadProps> = ({
   ogUrl,
   noindex = false,
 }) => {
-  const baseTitle = 'DevDuel - Соревнуйся в программировании с другими разработчиками';
-  const baseDescription = 'DevDuel - платформа для соревнований по программированию. Решай задачи на время, повышай уровень, общайся с другими разработчиками в реальном времени.';
   const baseUrl = 'https://devduel.ru';
   const defaultImage = `${baseUrl}/icon.png`;
 
