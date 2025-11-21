@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useGame } from '../context/GameContext';
@@ -8,25 +8,17 @@ import Spinner from '@/components/effects/Spinner';
 import { motion } from "framer-motion"
 const Game: React.FC = () => {
     const { sessionId } = useParams<{ sessionId: string }>();
-    const { user, socket, refreshUser } = useAuth();
+    const { user, socket } = useAuth();
     const { setIsInGame, setGameSessionId, setGameDuration } = useGame();
     const navigate = useNavigate();
     const [gameSession, setGameSession] = useState<GameSession | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const isGameFinishedRef = useRef(false);
-    const hasJoinedRef = useRef(false);
-    const refreshUserCalledRef = useRef(false);
 
     useEffect(() => {
-        if (!socket || !sessionId || !user?.id) return;
-        if (isGameFinishedRef.current) return;
-        if (hasJoinedRef.current && gameSession?.status !== 'finished') return;
+        if (!socket || !sessionId || !user) return;
 
         const handleGameSessionUpdate = (session: GameSession) => {
-            if (isGameFinishedRef.current) return;
-            if (session.status === 'finished') return;
-            
             setGameSession(session);
             setLoading(false);
 
@@ -35,25 +27,12 @@ const Game: React.FC = () => {
             setGameDuration(session.duration);
         };
 
-        const handleGameSessionEnd = async (data: any) => {
+        const handleGameSessionEnd = (data: any) => {
             console.log('game_session_end received:', data);
-            
-            if (isGameFinishedRef.current) return;
-            
-            isGameFinishedRef.current = true;
 
             setIsInGame(false);
             setGameSessionId(null);
             setGameDuration(null);
-
-            if (!refreshUserCalledRef.current && data && (data.status === 'finished' || data.reason === 'timeout' || data.reason === 'finished')) {
-                refreshUserCalledRef.current = true;
-                try {
-                    await refreshUser();
-                } catch (error) {
-                    console.error('Error refreshing user after game end:', error);
-                }
-            }
 
             if (data && data.id && data.status === 'finished') {
                 console.log('Setting game session with finished status:', data);
@@ -79,6 +58,7 @@ const Game: React.FC = () => {
             setIsInGame(false);
             setGameSessionId(null);
             setGameDuration(null);
+
         };
 
         const handleGameProgressUpdate = (_progress: { playerLevel: number; opponentLevel: number }) => {
@@ -89,10 +69,7 @@ const Game: React.FC = () => {
         socket.on('game_not_found', handleGameNotFound);
         socket.on('game_progress_update', handleGameProgressUpdate);
 
-        if (!hasJoinedRef.current) {
-            hasJoinedRef.current = true;
-            socket.emit('join_game_session', { sessionId });
-        }
+        socket.emit('join_game_session', { sessionId });
 
         return () => {
             socket.off('game_session_update', handleGameSessionUpdate);
@@ -100,13 +77,7 @@ const Game: React.FC = () => {
             socket.off('game_not_found', handleGameNotFound);
             socket.off('game_progress_update', handleGameProgressUpdate);
         };
-    }, [socket, sessionId, user?.id]);
-    
-    useEffect(() => {
-        isGameFinishedRef.current = false;
-        hasJoinedRef.current = false;
-        refreshUserCalledRef.current = false;
-    }, [sessionId]);
+    }, [socket, sessionId, user]);
 
     const handleLeave = () => {
         if (socket && sessionId) {
@@ -179,7 +150,7 @@ const Game: React.FC = () => {
                 onReady={handleReady}
                 onLeave={handleLeave}
                 onTaskSubmitted={() => {
-                    if (socket && sessionId && gameSession.status === 'in_progress') {
+                    if (socket && sessionId) {
                         socket.emit('join_game_session', { sessionId });
                     }
                 }}

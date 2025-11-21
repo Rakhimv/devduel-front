@@ -76,28 +76,22 @@
     },
     "asar": true,
     "files": [
-      "dist/**/*",
       "main.js",
       "splash.html",
-      "public/logo.svg",
       "package.json",
-      "!node_modules/**/{CHANGELOG.md,README.md,README,readme.md,readme}",
-      "!node_modules/**/{test,__tests__,tests,powered-test,example,examples}",
-      "!node_modules/**/*.d.ts",
-      "!node_modules/**/.{bin,eslintrc,nycrc,prettierrc}",
-      "node_modules/**/*"
+      "node_modules/electron/**/*",
+      "node_modules/electron-updater/**/*"
     ],
     "extraResources": [
       {
         "from": "build",
         "to": "build",
         "filter": ["**/*"]
-      }
-    ],
-    "extraFiles": [
+      },
       {
         "from": "public/logo.svg",
-        "to": "logo.svg"
+        "to": "logo.svg",
+        "filter": ["logo.svg"]
       }
     ],
     "publish": {
@@ -132,7 +126,12 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "DevDuel"
+      "shortcutName": "DevDuel",
+      "installerIcon": "build/favicon.ico",
+      "uninstallerIcon": "build/favicon.ico",
+      "installerHeaderIcon": "build/favicon.ico",
+      "deleteAppDataOnUninstall": true,
+      "artifactName": "DevDuel-Setup.exe"
     }
   }
 }

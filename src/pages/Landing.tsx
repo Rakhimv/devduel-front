@@ -57,8 +57,17 @@ const Landing = () => {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const handleDownload = (platform: 'windows' | 'linux' | 'macos') => {
-    console.log(`Скачать для ${platform}`);
-    alert(`Скачивание для ${platform} скоро будет доступно!`);
+    if (platform === 'windows') {
+      const link = document.createElement('a');
+      link.href = 'https://api.devduel.ru/download/DevDuel-Setup.exe';
+      link.download = 'DevDuel-Setup.exe';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      console.log(`Скачать для ${platform}`);
+      alert(`Скачивание для ${platform} скоро будет доступно!`);
+    }
   };
 
   const handleWebClick = () => {

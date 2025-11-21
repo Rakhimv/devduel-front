@@ -49,10 +49,19 @@
       text-shadow: 0 0 20px rgba(131, 214, 197, 0.5);
     }
     
+    .loading-text {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #83D6C5;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 18px;
+    }
+    
     .loader {
-      width: 40px;
-      height: 40px;
-      border: 3px solid rgba(131, 214, 197, 0.2);
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(131, 214, 197, 0.2);
       border-top-color: #83D6C5;
       border-radius: 50%;
       animation: spin 1s linear infinite;
@@ -79,10 +88,13 @@
 <body>
   <div class="splash-container">
     <div class="logo">
-      <img src="./logo.svg" alt="DevDuel Logo" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext x=%2250%22 y=%2250%22 font-size=%2240%22 fill=%22%2383D6C5%22 text-anchor=%22middle%22 dominant-baseline=%22middle%22%3EDD%3C/text%3E%3C/svg%3E'">
+      <img src="../logo.svg" alt="DevDuel Logo" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext x=%2250%22 y=%2250%22 font-size=%2240%22 fill=%22%2383D6C5%22 text-anchor=%22middle%22 dominant-baseline=%22middle%22%3EDD%3C/text%3E%3C/svg%3E'">
     </div>
     <div class="title">DevDuel</div>
-    <div class="loader"></div>
+    <div class="loading-text">
+      <span>Загрузка</span>
+      <div class="loader"></div>
+    </div>
   </div>
 </body>
 </html>

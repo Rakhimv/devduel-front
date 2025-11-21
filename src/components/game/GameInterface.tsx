@@ -51,16 +51,15 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
     if (!socket || gameSession.status !== 'in_progress') return;
 
     const handleGameProgressUpdate = (progress: { playerLevel: number; opponentLevel: number }) => {
-      setGameProgress(prev => {
-        if (prev) {
-          return {
+      if (gameProgress) {
+        setGameProgress(prev => prev ? {
             ...prev,
             playerLevel: progress.playerLevel,
             opponentLevel: progress.opponentLevel
-          };
+        } : null);
+      } else {
+        loadGameProgress();
         }
-        return null;
-      });
     };
 
     socket.on('game_progress_update', handleGameProgressUpdate);
@@ -68,7 +67,7 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
     return () => {
       socket.off('game_progress_update', handleGameProgressUpdate);
     };
-  }, [socket, gameSession.status]);
+  }, [socket, gameSession.status, gameProgress]);
 
   useEffect(() => {
     if (gameSession.status === 'finished') {
@@ -113,20 +112,14 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
   };
 
   const handleTaskSubmitted = (_success: boolean, _testResults: any[], gameFinished?: boolean) => {
-    if (gameSession.status === 'finished') return;
-    
     onTaskSubmitted?.();
 
     if (gameFinished) {
       setTimeout(() => {
-        if (gameSession.status !== 'finished') {
           loadGameProgress();
-        }
       }, 500);
     } else {
-      if (gameSession.status !== 'finished') {
         loadGameProgress();
-      }
     }
   };
 

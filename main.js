@@ -8,7 +8,6 @@ const { autoUpdater } = electronUpdater;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const indexPath = path.join(__dirname, 'dist', 'index.html');
 const splashPath = path.join(__dirname, 'splash.html');
 
 let splashWindow = null;
@@ -44,6 +43,7 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      webSecurity: true,
     },
     icon: getIconPath(),
     frame: true,
@@ -51,13 +51,8 @@ function createWindow() {
     autoHideMenuBar: true,
   });
 
-  mainWindow.loadFile(indexPath).then(() => {
-    mainWindow.webContents.executeJavaScript(`
-      if (window.location.hash !== '#/app') {
-        window.location.hash = '#/app';
-      }
-    `);
-  });
+  // Загружаем сайт напрямую
+  mainWindow.loadURL('https://devduel.ru/app');
 
   mainWindow.once('ready-to-show', () => {
     if (splashWindow) {
@@ -106,8 +101,6 @@ function checkForUpdates() {
 
 function getIconPath() {
   const platform = process.platform;
-  // В собранном приложении build находится в resources (extraResources)
-  // В dev режиме - в корне проекта
   const iconDir = app.isPackaged 
     ? path.join(process.resourcesPath, 'build')
     : path.join(__dirname, 'build');

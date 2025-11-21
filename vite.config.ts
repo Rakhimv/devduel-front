@@ -27,5 +27,15 @@ export default defineConfig({
   publicDir: 'public',
   build: {
     copyPublicDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'monaco-editor': ['@monaco-editor/react', 'monaco-editor'],
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'ui-vendor': ['framer-motion', 'react-icons', 'react-resizable-panels'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000,
   },
 });
