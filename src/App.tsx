@@ -63,8 +63,8 @@ function AppContent() {
         } />
         
         <Route element={<MaintenanceGuard />}>
-          <Route path="/app/" element={<Navigate to="/app" replace />} />
-          <Route path="/app" element={<Dashboard />} />
+          <Route path="/app/" element={<Navigate to="/app/msg" replace />} />
+          <Route path="/app" element={<Navigate to="/app/msg" replace />} />
           <Route path="/app/msg/" element={<Dashboard />} />
           <Route path="/app/msg/:id" element={<Dashboard />} />
           <Route path="/rating" element={
