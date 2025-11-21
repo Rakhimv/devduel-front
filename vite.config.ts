@@ -15,7 +15,7 @@ export default defineConfig({
       languageWorkers: ['editorWorkerService', 'css', 'html', 'json', 'typescript'],
     }),
   ],
-  base: './',
+  base: '/',
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
