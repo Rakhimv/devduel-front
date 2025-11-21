@@ -1,4 +1,4 @@
-    <img src="https://devduel.ru/prev.png" style="width:100%;" alt="DevDuel">
+<img src="https://devduel.ru/prev.svg" style="width:100%;" alt="DevDuel">
 
 # DevDuel
 
