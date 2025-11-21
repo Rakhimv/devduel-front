@@ -138,13 +138,27 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       localStorage.setItem('gameDuration', data.duration.toString());
     };
 
-    const handleGameSessionEnd = () => {
-      setIsInGame(false);
-      setGameSessionId(null);
-      setGameDuration(null);
-      localStorage.removeItem('gameSessionId');
-      localStorage.removeItem('isInGame');
-      localStorage.removeItem('gameDuration');
+    const handleGameSessionEnd = (data?: any) => {
+      // Если игра уже закончена и показывается финальная сессия, не очищаем сразу
+      // Дадим Game.tsx возможность показать финальный экран
+      if (data && data.status === 'finished') {
+        // Откладываем очистку, чтобы дать время показать финальный экран
+        setTimeout(() => {
+          setIsInGame(false);
+          setGameSessionId(null);
+          setGameDuration(null);
+          localStorage.removeItem('gameSessionId');
+          localStorage.removeItem('isInGame');
+          localStorage.removeItem('gameDuration');
+        }, 5000); // 5 секунд задержка
+      } else {
+        setIsInGame(false);
+        setGameSessionId(null);
+        setGameDuration(null);
+        localStorage.removeItem('gameSessionId');
+        localStorage.removeItem('isInGame');
+        localStorage.removeItem('gameDuration');
+      }
     };
 
     const handleGameInviteAccepted = (session: any) => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useGame } from '../context/GameContext';
@@ -14,35 +14,40 @@ const Game: React.FC = () => {
     const [gameSession, setGameSession] = useState<GameSession | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const isGameFinishedRef = useRef(false);
+    const hasJoinedRef = useRef(false);
+    const refreshUserCalledRef = useRef(false);
 
     useEffect(() => {
-        if (!socket || !sessionId || !user) return;
-
-        let isGameFinished = false;
+        if (!socket || !sessionId || !user?.id) return;
+        if (isGameFinishedRef.current) return;
+        if (hasJoinedRef.current && gameSession?.status !== 'finished') return;
 
         const handleGameSessionUpdate = (session: GameSession) => {
-            if (isGameFinished) return;
+            if (isGameFinishedRef.current) return;
+            if (session.status === 'finished') return;
             
             setGameSession(session);
             setLoading(false);
 
-            if (session.status !== 'finished') {
-                setIsInGame(true);
-                setGameSessionId(session.id);
-                setGameDuration(session.duration);
-            }
+            setIsInGame(true);
+            setGameSessionId(session.id);
+            setGameDuration(session.duration);
         };
 
         const handleGameSessionEnd = async (data: any) => {
             console.log('game_session_end received:', data);
             
-            isGameFinished = true;
+            if (isGameFinishedRef.current) return;
+            
+            isGameFinishedRef.current = true;
 
             setIsInGame(false);
             setGameSessionId(null);
             setGameDuration(null);
 
-            if (data && (data.status === 'finished' || data.reason === 'timeout' || data.reason === 'finished')) {
+            if (!refreshUserCalledRef.current && data && (data.status === 'finished' || data.reason === 'timeout' || data.reason === 'finished')) {
+                refreshUserCalledRef.current = true;
                 try {
                     await refreshUser();
                 } catch (error) {
@@ -74,7 +79,6 @@ const Game: React.FC = () => {
             setIsInGame(false);
             setGameSessionId(null);
             setGameDuration(null);
-
         };
 
         const handleGameProgressUpdate = (_progress: { playerLevel: number; opponentLevel: number }) => {
@@ -85,7 +89,10 @@ const Game: React.FC = () => {
         socket.on('game_not_found', handleGameNotFound);
         socket.on('game_progress_update', handleGameProgressUpdate);
 
-        socket.emit('join_game_session', { sessionId });
+        if (!hasJoinedRef.current) {
+            hasJoinedRef.current = true;
+            socket.emit('join_game_session', { sessionId });
+        }
 
         return () => {
             socket.off('game_session_update', handleGameSessionUpdate);
@@ -93,7 +100,13 @@ const Game: React.FC = () => {
             socket.off('game_not_found', handleGameNotFound);
             socket.off('game_progress_update', handleGameProgressUpdate);
         };
-    }, [socket, sessionId, user]);
+    }, [socket, sessionId, user?.id]);
+    
+    useEffect(() => {
+        isGameFinishedRef.current = false;
+        hasJoinedRef.current = false;
+        refreshUserCalledRef.current = false;
+    }, [sessionId]);
 
     const handleLeave = () => {
         if (socket && sessionId) {
