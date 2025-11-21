@@ -18,17 +18,25 @@ const Game: React.FC = () => {
     useEffect(() => {
         if (!socket || !sessionId || !user) return;
 
+        let isGameFinished = false;
+
         const handleGameSessionUpdate = (session: GameSession) => {
+            if (isGameFinished) return;
+            
             setGameSession(session);
             setLoading(false);
 
-            setIsInGame(true);
-            setGameSessionId(session.id);
-            setGameDuration(session.duration);
+            if (session.status !== 'finished') {
+                setIsInGame(true);
+                setGameSessionId(session.id);
+                setGameDuration(session.duration);
+            }
         };
 
         const handleGameSessionEnd = async (data: any) => {
             console.log('game_session_end received:', data);
+            
+            isGameFinished = true;
 
             setIsInGame(false);
             setGameSessionId(null);
@@ -158,7 +166,7 @@ const Game: React.FC = () => {
                 onReady={handleReady}
                 onLeave={handleLeave}
                 onTaskSubmitted={() => {
-                    if (socket && sessionId) {
+                    if (socket && sessionId && gameSession.status === 'in_progress') {
                         socket.emit('join_game_session', { sessionId });
                     }
                 }}

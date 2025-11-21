@@ -51,15 +51,16 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
     if (!socket || gameSession.status !== 'in_progress') return;
 
     const handleGameProgressUpdate = (progress: { playerLevel: number; opponentLevel: number }) => {
-      if (gameProgress) {
-        setGameProgress(prev => prev ? {
-          ...prev,
-          playerLevel: progress.playerLevel,
-          opponentLevel: progress.opponentLevel
-        } : null);
-      } else {
-        loadGameProgress();
-      }
+      setGameProgress(prev => {
+        if (prev) {
+          return {
+            ...prev,
+            playerLevel: progress.playerLevel,
+            opponentLevel: progress.opponentLevel
+          };
+        }
+        return null;
+      });
     };
 
     socket.on('game_progress_update', handleGameProgressUpdate);
@@ -67,7 +68,7 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
     return () => {
       socket.off('game_progress_update', handleGameProgressUpdate);
     };
-  }, [socket, gameSession.status, gameProgress]);
+  }, [socket, gameSession.status]);
 
   useEffect(() => {
     if (gameSession.status === 'finished') {
@@ -112,14 +113,20 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
   };
 
   const handleTaskSubmitted = (_success: boolean, _testResults: any[], gameFinished?: boolean) => {
+    if (gameSession.status === 'finished') return;
+    
     onTaskSubmitted?.();
 
     if (gameFinished) {
       setTimeout(() => {
-        loadGameProgress();
+        if (gameSession.status !== 'finished') {
+          loadGameProgress();
+        }
       }, 500);
     } else {
-      loadGameProgress();
+      if (gameSession.status !== 'finished') {
+        loadGameProgress();
+      }
     }
   };
 
@@ -281,7 +288,7 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
                   </div>
                 ) : (
                   <div className="flex items-center justify-center h-full text-white/60">
-                    Загрузка задачи...
+                    Загрузка задачи... <Spinner />
                   </div>
                 )}
               </div>
