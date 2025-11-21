@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { GameProvider } from './context/GameContext';
 import { CodeProvider } from './context/CodeContext';
@@ -20,6 +20,7 @@ import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import { HeaderLayout } from './layouts/HeaderLayout';
 import MobileWarning from './components/MobileWarning';
+import AppVersion from './components/AppVersion';
 import { useState, useEffect } from 'react';
 
 function AppContent() {
@@ -62,6 +63,7 @@ function AppContent() {
         } />
         
         <Route element={<MaintenanceGuard />}>
+          <Route path="/app/" element={<Navigate to="/app" replace />} />
           <Route path="/app" element={<Dashboard />} />
           <Route path="/app/msg/" element={<Dashboard />} />
           <Route path="/app/msg/:id" element={<Dashboard />} />
@@ -94,6 +96,7 @@ function App() {
           <CodeProvider>
             <GameNavigationGuard>
               <AppContent />
+              <AppVersion />
             </GameNavigationGuard>
           </CodeProvider>
         </GameProvider>

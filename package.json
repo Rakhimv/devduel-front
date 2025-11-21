@@ -1,7 +1,9 @@
 {
   "name": "devduel",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
+  "description": "Платформа для соревнований по программированию",
+  "author": "DevDuel",
   "main": "main.js",
   "homepage": "./",
   "type": "module",
@@ -11,10 +13,13 @@
     "preview": "vite preview",
     "electron": "electron .",
     "electron:dev": "npm run build && npm run electron",
-    "dist": "npm run build && electron-builder",
-    "dist:win": "npm run build && electron-builder --win",
-    "dist:mac": "npm run build && electron-builder --mac",
-    "dist:linux": "npm run build && electron-builder --linux"
+    "clean-release": "node clean-release.js",
+    "dist": "npm run clean-release && npm run build && electron-builder --publish never",
+    "dist:win": "npm run clean-release && npm run build && electron-builder --win --publish never",
+    "dist:mac": "npm run clean-release && npm run build && electron-builder --mac --publish never",
+    "dist:linux": "npm run clean-release && npm run build && electron-builder --linux --publish never",
+    "dist:all": "node build-all.js",
+    "clear-cache": "node clear-cache.js"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
@@ -38,7 +43,8 @@
     "react-virtuoso": "^4.14.1",
     "sass": "^1.93.0",
     "socket.io-client": "^4.8.1",
-    "tailwindcss": "^4.1.13"
+    "tailwindcss": "^4.1.13",
+    "electron-updater": "^6.1.7"
   },
   "devDependencies": {
     "@eslint/js": "^9.35.0",
@@ -65,34 +71,61 @@
     "appId": "com.devduel.app",
     "productName": "DevDuel",
     "directories": {
-      "output": "dist-electron",
+      "output": "release",
       "buildResources": "build"
     },
+    "asar": true,
     "files": [
       "dist/**/*",
       "main.js",
+      "splash.html",
+      "public/logo.svg",
+      "package.json",
+      "!node_modules/**/{CHANGELOG.md,README.md,README,readme.md,readme}",
+      "!node_modules/**/{test,__tests__,tests,powered-test,example,examples}",
+      "!node_modules/**/*.d.ts",
+      "!node_modules/**/.{bin,eslintrc,nycrc,prettierrc}",
       "node_modules/**/*"
     ],
+    "extraResources": [
+      {
+        "from": "build",
+        "to": "build",
+        "filter": ["**/*"]
+      }
+    ],
+    "extraFiles": [
+      {
+        "from": "public/logo.svg",
+        "to": "logo.svg"
+      }
+    ],
+    "publish": {
+      "provider": "generic",
+      "url": "https://devduel.ru/updates"
+    },
     "win": {
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64", "ia32"]
+          "arch": ["x64"]
         }
       ],
       "icon": "build/favicon.ico",
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "verifyUpdateCodeSignature": false,
+      "forceCodeSigning": false
     },
     "mac": {
       "target": ["dmg"],
       "icon": "build/icon.icns",
-      "category": "public.app-category.developer-tools"
+      "category": "public.app-category.developer-tools",
+      "identity": null
     },
     "linux": {
-      "target": ["AppImage", "deb"],
+      "target": ["deb"],
       "icon": "build/icon.png",
-      "category": "Development"
+      "category": "Development",
+      "synopsis": "Платформа для соревнований по программированию"
     },
     "nsis": {
       "oneClick": false,

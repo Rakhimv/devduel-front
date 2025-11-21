@@ -1,3 +1,5 @@
+@use "sass:color";
+
 * {
     box-sizing: border-box;
     font-family: "JetBrains Mono", monospace;
@@ -66,7 +68,7 @@ body {
     &.dd-btn-disabled {
         opacity: 0.6;
         cursor: not-allowed;
-        background: darken($primary, 15%);
+        background: color.adjust($primary, $lightness: -15%);
     }
 }
 

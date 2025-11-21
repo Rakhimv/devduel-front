@@ -86,7 +86,7 @@ const Landing = () => {
 
         <div className="relative z-10 pt-20 md:pt-24">
           <section className="min-h-screen flex items-center justify-center px-4 py-12 pt-0 md:py-20 md:pt-0">
-            <div className="max-w-7xl w-full">
+            <div className="max-w-7xl w-full px-8">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
                 <motion.div
                   initial={{ opacity: 0, x: -20 }}
@@ -94,32 +94,12 @@ const Landing = () => {
                   transition={{ duration: 0.6 }}
                   className="space-y-6"
                 >
-                  <motion.h1
-                    initial={{ opacity: 0, scale: 0.9, y: -20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    transition={{
-                      duration: 0.8,
-                      delay: 0.2,
-                      type: 'spring',
-                      stiffness: 100
-                    }}
-                    whileHover={{ scale: 1.05 }}
+                  <h1
                     className="text-5xl md:text-6xl lg:text-7xl font-bold text-primary cursor-default"
                     style={{ textShadow: '0 0 40px rgba(131, 214, 197, 0.5)' }}
                   >
-                    <motion.span
-                      animate={{
-                        textShadow: [
-                          '0 0 40px rgba(131, 214, 197, 0.5)',
-                          '0 0 60px rgba(131, 214, 197, 0.8)',
-                          '0 0 40px rgba(131, 214, 197, 0.5)'
-                        ]
-                      }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                    >
-                      DevDuel
-                    </motion.span>
-                  </motion.h1>
+                    DevDuel
+                  </h1>
 
                   <motion.p
                     initial={{ opacity: 0 }}
@@ -136,77 +116,37 @@ const Landing = () => {
                     transition={{ duration: 0.6, delay: 0.6 }}
                     className="flex flex-wrap gap-3 pt-4"
                   >
-                    <motion.button
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.7 }}
-                      whileHover={{ scale: 1.05, y: -2 }}
-                      whileTap={{ scale: 0.95 }}
+                    <button
                       onClick={() => handleDownload('windows')}
                       className="flex items-center cursor-pointer gap-2 px-4 py-2.5 bg-secondary-bg border border-primary-bdr hover:border-primary transition-all group backdrop-blur-sm"
                     >
-                      <motion.div
-                        whileHover={{ rotate: 360 }}
-                        transition={{ duration: 0.5 }}
-                      >
-                        <FaWindows className="text-lg text-primary" />
-                      </motion.div>
+                      <FaWindows className="text-lg text-primary" />
                       <span className="text-sm md:text-base font-semibold text-white">Windows</span>
-                    </motion.button>
+                    </button>
 
-                    <motion.button
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.75 }}
-                      whileHover={{ scale: 1.05, y: -2 }}
-                      whileTap={{ scale: 0.95 }}
+                    <button
                       onClick={() => handleDownload('linux')}
                       className="flex items-center cursor-pointer gap-2 px-4 py-2.5 bg-secondary-bg border border-primary-bdr hover:border-primary transition-all group backdrop-blur-sm"
                     >
-                      <motion.div
-                        whileHover={{ rotate: 360 }}
-                        transition={{ duration: 0.5 }}
-                      >
-                        <FaLinux className="text-lg text-primary" />
-                      </motion.div>
+                      <FaLinux className="text-lg text-primary" />
                       <span className="text-sm md:text-base font-semibold text-white">Linux</span>
-                    </motion.button>
+                    </button>
 
-                    <motion.button
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.8 }}
-                      whileHover={{ scale: 1.05, y: -2 }}
-                      whileTap={{ scale: 0.95 }}
+                    <button
                       onClick={() => handleDownload('macos')}
                       className="flex items-center cursor-pointer gap-2 px-4 py-2.5 bg-secondary-bg border border-primary-bdr hover:border-primary transition-all group backdrop-blur-sm"
                     >
-                      <motion.div
-                        whileHover={{ rotate: 360 }}
-                        transition={{ duration: 0.5 }}
-                      >
-                        <FaApple className="text-lg text-primary" />
-                      </motion.div>
+                      <FaApple className="text-lg text-primary" />
                       <span className="text-sm md:text-base font-semibold text-white">macOS</span>
-                    </motion.button>
+                    </button>
 
-                    <motion.button
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.85 }}
-                      whileHover={{ scale: 1.05, y: -2 }}
-                      whileTap={{ scale: 0.95 }}
+                    <button
                       onClick={handleWebClick}
                       className="dd-btn flex items-center gap-2 px-4 py-2.5 group"
                     >
-                      <motion.div
-                        whileHover={{ rotate: 360 }}
-                        transition={{ duration: 0.5 }}
-                      >
-                        <IoGlobeOutline className="text-lg text-black" />
-                      </motion.div>
+                      <IoGlobeOutline className="text-lg text-black" />
                       <span className="text-sm md:text-base font-semibold text-black">Веб версия</span>
-                    </motion.button>
+                    </button>
                   </motion.div>
 
 
@@ -216,7 +156,7 @@ const Landing = () => {
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.6, delay: 0.3 }}
-                  className="flex justify-center lg:justify-end mt-8 lg:mt-0"
+                  className="flex justify-center lg:justify-end mt-8 lg:mt-0 h-[350px] items-center"
                 >
                   <CodeEditorAnimation />
                 </motion.div>
@@ -499,7 +439,7 @@ const Landing = () => {
                 className="border-t border-primary-bdr pt-8 flex flex-col md:flex-row justify-between items-center gap-4"
               >
                 <p className="text-white/50 text-sm">
-                  © {new Date().getFullYear()} DevDuel. Все права защищены.
+                  © {new Date().getFullYear()} DevDuel. Все права защищены. v{import.meta.env.VITE_APP_VERSION || '1.0.1'}
                 </p>
                 <div className="flex gap-6">
                   <Link
