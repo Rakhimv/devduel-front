@@ -447,9 +447,16 @@ const Landing = () => {
                 transition={{ duration: 0.6, delay: 0.3 }}
                 className="border-t border-primary-bdr pt-8 flex flex-col md:flex-row justify-between items-center gap-4"
               >
-                <p className="text-white/50 text-sm">
-                  © {new Date().getFullYear()} DevDuel. Все права защищены. v{import.meta.env.VITE_APP_VERSION || '1.0.1'}
-                </p>
+                <div>
+                  <p className="text-white/50 text-sm">
+                    © {new Date().getFullYear()} DevDuel. Все права защищены. v{import.meta.env.VITE_APP_VERSION || '1.0.1'} <br />
+
+                  </p>
+                  <p className="text-white/50 text-sm flex items-center">
+                    Разработал AziCode для SPBU <img src='/spbu.svg' className='inline w-[20px] opacity-50 ml-[5px]' />
+                  </p>
+
+                </div>
                 <div className="flex gap-6">
                   <Link
                     to="/privacy"
