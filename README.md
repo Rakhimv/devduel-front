@@ -1,5 +1,6 @@
-<center><img src="https://devduel.ru/logo.svg"></center>
-
+<div style="text-align: center;">
+    <img src="https://devduel.ru/logo.svg" alt="DevDuel">
+</div>
 
 # DevDuel
 
