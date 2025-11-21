@@ -3,6 +3,7 @@ import { Outlet } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { checkMaintenanceMode } from "../api/api";
 import MaintenanceMode from "./MaintenanceMode";
+import Spinner from "./effects/Spinner";
 
 const MaintenanceGuard = () => {
   const { user, isLoading: authLoading } = useAuth();
@@ -36,8 +37,12 @@ const MaintenanceGuard = () => {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen w-full bg-secondary-bg flex items-center justify-center">
-        <div className="text-white/60">Загрузка...</div>
+      <div className="min-h-screen w-full bg-primary-bg flex items-center justify-center">
+        <div
+          className="flex text-primary gap-[10px]"
+        >
+          Загрузка <Spinner />
+        </div>
       </div>
     );
   }
@@ -48,8 +53,12 @@ const MaintenanceGuard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen w-full bg-secondary-bg flex items-center justify-center">
-        <div className="text-white/60">Загрузка...</div>
+      <div className="min-h-screen w-full bg-primary-bg flex items-center justify-center">
+        <div
+          className="flex text-primary gap-[10px]"
+        >
+          Загрузка <Spinner />
+        </div>
       </div>
     );
   }

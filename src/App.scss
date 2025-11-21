@@ -53,6 +53,10 @@ body {
     border: 1px solid $redDD
 }
 
+img {
+    user-select: none;
+}
+
 .dd-btn {
     border: 1px solid $primary;
     background: $primary;
